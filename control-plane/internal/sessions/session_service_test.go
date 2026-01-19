@@ -21,6 +21,18 @@ func (mockSessionStore) Create(ctx context.Context, session storage.Session) err
 	return nil
 }
 
+func (mockSessionStore) Get(ctx context.Context, id string) (storage.Session, error) {
+	_ = ctx
+	return storage.Session{ID: id, Status: string(StatusActive)}, nil
+}
+
+func (mockSessionStore) UpdateStatus(ctx context.Context, id string, status string) error {
+	_ = ctx
+	_ = id
+	_ = status
+	return nil
+}
+
 type storageError string
 
 func (e storageError) Error() string { return string(e) }

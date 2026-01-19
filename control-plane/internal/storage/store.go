@@ -30,10 +30,14 @@ type Artifact struct {
 
 type JobStore interface {
 	Create(ctx context.Context, job Job) error
+	Get(ctx context.Context, id string) (Job, error)
+	UpdateStatus(ctx context.Context, id string, status string) error
 }
 
 type SessionStore interface {
 	Create(ctx context.Context, session Session) error
+	Get(ctx context.Context, id string) (Session, error)
+	UpdateStatus(ctx context.Context, id string, status string) error
 }
 
 type PolicyStore interface {
@@ -42,4 +46,5 @@ type PolicyStore interface {
 
 type AuditStore interface {
 	Append(ctx context.Context, event AuditEvent) error
+	List(ctx context.Context) ([]AuditEvent, error)
 }

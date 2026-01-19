@@ -19,6 +19,18 @@ func (mockJobStore) Create(ctx context.Context, job storage.Job) error {
 	return nil
 }
 
+func (mockJobStore) Get(ctx context.Context, id string) (storage.Job, error) {
+	_ = ctx
+	return storage.Job{ID: id, Status: string(JobQueued)}, nil
+}
+
+func (mockJobStore) UpdateStatus(ctx context.Context, id string, status string) error {
+	_ = ctx
+	_ = id
+	_ = status
+	return nil
+}
+
 type mockEvaluator struct {
 	allowed bool
 }

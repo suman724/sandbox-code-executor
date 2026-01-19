@@ -1,6 +1,9 @@
 package orchestration
 
-import "context"
+import (
+	"context"
+	"errors"
+)
 
 type DegradationMode string
 
@@ -20,4 +23,16 @@ type StaticDegradationController struct {
 func (s StaticDegradationController) Mode(ctx context.Context) DegradationMode {
 	_ = ctx
 	return s.mode
+}
+
+var ErrReadOnlyMode = errors.New("service in read-only mode")
+
+func RequireWriteAllowed(ctx context.Context, controller DegradationController) error {
+	if controller == nil {
+		return nil
+	}
+	if controller.Mode(ctx) == DegradationReadOnly {
+		return ErrReadOnlyMode
+	}
+	return nil
 }

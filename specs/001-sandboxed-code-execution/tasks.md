@@ -45,17 +45,17 @@ description: "Task list template for feature implementation"
 - [X] T007 Implement data-plane routing for /runs create/get/terminate in `data-plane/internal/runtime/router.go`
 - [X] T008 Implement JWT auth, tenant/agent context, and bypass audit logging in `control-plane/internal/api/middleware/auth.go`
 - [X] T009 Implement service-to-service auth and bypass audit logging in `data-plane/internal/runtime/auth.go`
-- [ ] T010 Implement OPA policy evaluator loader and Evaluate logic in `control-plane/internal/policy/engine.go`
-- [ ] T011 Implement persistent idempotency store and wire usage in `control-plane/internal/orchestration/idempotency_store.go`
-- [ ] T012 Implement retry/backoff handling + degradation gates in `control-plane/internal/orchestration/retry_policy.go` and `control-plane/internal/orchestration/degradation.go`
-- [ ] T013 Implement PostgreSQL job/session stores (create/update/get) in `control-plane/internal/storage/postgres/job_store.go`
-- [ ] T014 Implement PostgreSQL policy/audit stores + audit queries in `control-plane/internal/storage/postgres/policy_store.go`
-- [ ] T015 Implement artifact storage adapter with signed URLs in `control-plane/internal/storage/object/artifact_store.go`
-- [ ] T016 Implement audit logger + persistence wiring in `control-plane/internal/audit/logger.go` and `control-plane/internal/audit/store.go`
-- [ ] T017 Implement runtime adapters registry (python/node) in `data-plane/internal/runtime/registry.go`
-- [ ] T018 Implement egress/resource limit enforcement in `data-plane/internal/isolation/egress.go` and `data-plane/internal/isolation/limits.go`
-- [ ] T019 Implement workspace encryption/secure delete/secret materialization in `data-plane/internal/workspace/encryption.go`, `data-plane/internal/workspace/secure_delete.go`, `data-plane/internal/workspace/secrets.go`
-- [ ] T020 Implement control-plane data-plane HTTP client (auth headers, timeouts, retries) in `control-plane/pkg/client/data_plane_client.go`
+- [X] T010 Implement OPA policy evaluator loader and Evaluate logic in `control-plane/internal/policy/engine.go`
+- [X] T011 Implement persistent idempotency store and wire usage in `control-plane/internal/orchestration/idempotency_store.go`
+- [X] T012 Implement retry/backoff handling + degradation gates in `control-plane/internal/orchestration/retry_policy.go` and `control-plane/internal/orchestration/degradation.go`
+- [X] T013 Implement PostgreSQL job/session stores (create/update/get) in `control-plane/internal/storage/postgres/job_store.go`
+- [X] T014 Implement PostgreSQL policy/audit stores + audit queries in `control-plane/internal/storage/postgres/policy_store.go`
+- [X] T015 Implement artifact storage adapter with signed URLs in `control-plane/internal/storage/object/artifact_store.go`
+- [X] T016 Implement audit logger + persistence wiring in `control-plane/internal/audit/logger.go` and `control-plane/internal/audit/store.go`
+- [X] T017 Implement runtime adapters registry (python/node) in `data-plane/internal/runtime/registry.go`
+- [X] T018 Implement egress/resource limit enforcement in `data-plane/internal/isolation/egress.go` and `data-plane/internal/isolation/limits.go`
+- [X] T019 Implement workspace encryption/secure delete/secret materialization in `data-plane/internal/workspace/encryption.go`, `data-plane/internal/workspace/secure_delete.go`, `data-plane/internal/workspace/secrets.go`
+- [X] T020 Implement control-plane data-plane HTTP client (auth headers, timeouts, retries) in `control-plane/pkg/client/data_plane_client.go`
 
 **Checkpoint**: Foundation ready - user story implementation can now begin in parallel
 
