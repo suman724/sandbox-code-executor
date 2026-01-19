@@ -2,6 +2,9 @@ package orchestration
 
 import (
 	"context"
+	"io"
+	"net/http"
+	"strings"
 	"testing"
 
 	"control-plane/internal/policy"
@@ -45,10 +48,29 @@ type storageError string
 
 func (e storageError) Error() string { return string(e) }
 
+type roundTripperFunc func(*http.Request) (*http.Response, error)
+
+func (f roundTripperFunc) RoundTrip(req *http.Request) (*http.Response, error) {
+	return f(req)
+}
+
+func stubClient(runID string) *http.Client {
+	return &http.Client{
+		Transport: roundTripperFunc(func(req *http.Request) (*http.Response, error) {
+			body := io.NopCloser(strings.NewReader(`{"run_id":"` + runID + `"}`))
+			return &http.Response{
+				StatusCode: http.StatusAccepted,
+				Body:       body,
+				Header:     make(http.Header),
+			}, nil
+		}),
+	}
+}
+
 func TestJobServiceLifecycle(t *testing.T) {
 	svc := JobService{
 		Store:  mockJobStore{},
-		Client: client.DataPlaneClient{},
+		Client: client.DataPlaneClient{BaseURL: "http://data-plane", Client: stubClient("run-1")},
 		Enforcer: PolicyEnforcer{
 			Evaluator: mockEvaluator{allowed: true},
 		},
@@ -62,7 +84,7 @@ func TestJobServiceLifecycle(t *testing.T) {
 func TestJobServicePolicyDenied(t *testing.T) {
 	svc := JobService{
 		Store:  mockJobStore{},
-		Client: client.DataPlaneClient{},
+		Client: client.DataPlaneClient{BaseURL: "http://data-plane", Client: stubClient("run-1")},
 		Enforcer: PolicyEnforcer{
 			Evaluator: mockEvaluator{allowed: false},
 		},

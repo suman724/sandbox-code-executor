@@ -2,6 +2,9 @@ package sessions
 
 import (
 	"context"
+	"io"
+	"net/http"
+	"strings"
 	"testing"
 	"time"
 
@@ -37,6 +40,25 @@ type storageError string
 
 func (e storageError) Error() string { return string(e) }
 
+type roundTripperFunc func(*http.Request) (*http.Response, error)
+
+func (f roundTripperFunc) RoundTrip(req *http.Request) (*http.Response, error) {
+	return f(req)
+}
+
+func stubClient(runID string) *http.Client {
+	return &http.Client{
+		Transport: roundTripperFunc(func(req *http.Request) (*http.Response, error) {
+			body := io.NopCloser(strings.NewReader(`{"run_id":"` + runID + `"}`))
+			return &http.Response{
+				StatusCode: http.StatusAccepted,
+				Body:       body,
+				Header:     make(http.Header),
+			}, nil
+		}),
+	}
+}
+
 type mockEvaluator struct {
 	allowed bool
 }
@@ -50,7 +72,7 @@ func (m mockEvaluator) Evaluate(ctx context.Context, input any) (policy.Decision
 func TestSessionLifecycle(t *testing.T) {
 	svc := Service{
 		Store:  mockSessionStore{},
-		Client: client.DataPlaneClient{},
+		Client: client.DataPlaneClient{BaseURL: "http://data-plane", Client: stubClient("run-1")},
 		Enforcer: orchestration.PolicyEnforcer{
 			Evaluator: mockEvaluator{allowed: true},
 		},
@@ -64,7 +86,7 @@ func TestSessionLifecycle(t *testing.T) {
 func TestSessionPolicyDenied(t *testing.T) {
 	svc := Service{
 		Store:  mockSessionStore{},
-		Client: client.DataPlaneClient{},
+		Client: client.DataPlaneClient{BaseURL: "http://data-plane", Client: stubClient("run-1")},
 		Enforcer: orchestration.PolicyEnforcer{
 			Evaluator: mockEvaluator{allowed: false},
 		},
