@@ -1,6 +1,6 @@
 FROM golang:1.23 AS build
 WORKDIR /src
-COPY control-plane/go.mod control-plane/go.sum ./control-plane/
+COPY control-plane/go.mod ./control-plane/
 WORKDIR /src/control-plane
 ENV GOFLAGS="-mod=mod"
 RUN go mod download
