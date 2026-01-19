@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"time"
 
 	"control-plane/internal/api"
 	"control-plane/internal/api/handlers"
@@ -17,6 +18,13 @@ import (
 	storefactory "control-plane/internal/storage/factory"
 	"control-plane/internal/storage/object"
 	"control-plane/pkg/client"
+
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
+	"go.opentelemetry.io/otel/propagation"
+	"go.opentelemetry.io/otel/sdk/resource"
+	sdktrace "go.opentelemetry.io/otel/sdk/trace"
+	semconv "go.opentelemetry.io/otel/semconv/v1.26.0"
 )
 
 func main() {
@@ -27,6 +35,22 @@ func main() {
 
 	addr := ":" + getenv("PORT", "8080")
 	log.Printf("control-plane starting env=%s addr=%s", cfg.Env, addr)
+
+	serviceName := cfg.OtelService
+	if serviceName == "" {
+		serviceName = "control-plane"
+	}
+	shutdown, err := initTelemetry(context.Background(), serviceName, cfg.OtelEndpoint)
+	if err != nil {
+		log.Fatalf("otel init error: %v", err)
+	}
+	defer func() {
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		if err := shutdown(ctx); err != nil {
+			log.Printf("otel shutdown error: %v", err)
+		}
+	}()
 
 	stores, err := storefactory.NewStoreSet(context.Background(), cfg.DatabaseDriver, cfg.DatabaseURL)
 	if err != nil {
@@ -91,4 +115,36 @@ func getenv(key, fallback string) string {
 		return value
 	}
 	return fallback
+}
+
+func initTelemetry(ctx context.Context, serviceName string, endpoint string) (func(context.Context) error, error) {
+	otel.SetTextMapPropagator(propagation.TraceContext{})
+	res, err := resource.New(ctx, resource.WithAttributes(
+		semconv.ServiceNameKey.String(serviceName),
+	))
+	if err != nil {
+		return nil, err
+	}
+	var tracerProvider *sdktrace.TracerProvider
+	if endpoint != "" {
+		exporter, err := otlptracegrpc.New(ctx, otlptracegrpc.WithEndpoint(endpoint), otlptracegrpc.WithInsecure())
+		if err != nil {
+			return nil, err
+		}
+		tracerProvider = sdktrace.NewTracerProvider(
+			sdktrace.WithResource(res),
+			sdktrace.WithBatcher(exporter),
+		)
+	} else {
+		tracerProvider = sdktrace.NewTracerProvider(
+			sdktrace.WithResource(res),
+		)
+	}
+	otel.SetTracerProvider(tracerProvider)
+	return func(ctx context.Context) error {
+		if err := tracerProvider.Shutdown(ctx); err != nil {
+			return err
+		}
+		return nil
+	}, nil
 }

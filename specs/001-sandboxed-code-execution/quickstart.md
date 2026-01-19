@@ -61,6 +61,8 @@ export MCP_ADDR=':8090'
   `go test ./data-plane/tests/integration`.
 - Run k6 checks: `k6 run control-plane/tests/integration/k6/jobs.js` and
   `k6 run control-plane/tests/integration/k6/sessions.js`.
+- Start locally with defaults: `make run-local` (starts REST on `:8080` and MCP on `:8090`).
+- Validate MCP health: `curl http://localhost:8090/healthz`.
 
 ## Deployment Notes
 
