@@ -28,7 +28,7 @@ format:
 run: run-control-plane run-data-plane
 
 run-local:
-	@ENV=dev DATA_PLANE_URL=http://localhost:8081 DATABASE_DRIVER=sqlite DATABASE_URL='file:control-plane.db?cache=shared&mode=rwc' AUTHZ_BYPASS=true \
+	@ENV=dev DATA_PLANE_URL=http://localhost:8081 DATABASE_DRIVER=sqlite DATABASE_URL='file:control-plane.db?cache=shared&mode=rwc' MCP_ADDR=:8090 AUTHZ_BYPASS=true \
 		$(MAKE) run-control-plane &
 	@ENV=dev RUNTIME_NAMESPACE=default RUNTIME_CLASS=gvisor AUTHZ_BYPASS=true \
 		$(MAKE) run-data-plane &
