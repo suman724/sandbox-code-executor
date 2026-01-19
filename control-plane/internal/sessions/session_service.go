@@ -29,10 +29,11 @@ func (s Service) CreateSession(ctx context.Context, session Session) (string, er
 		return "", err
 	}
 	resp, err := s.Client.StartRun(ctx, client.RunRequest{
-		JobID:     session.ID,
-		Language:  "session",
-		Code:      "",
-		Workspace: session.ID,
+		JobID:        session.ID,
+		PolicyID:     session.PolicyID,
+		Language:     "session",
+		Code:         "",
+		WorkspaceRef: session.ID,
 	})
 	if err != nil {
 		return "", err

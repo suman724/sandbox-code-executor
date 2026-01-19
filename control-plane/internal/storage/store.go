@@ -24,8 +24,11 @@ type AuditEvent struct {
 }
 
 type Artifact struct {
-	ID   string
-	Name string
+	ID         string
+	Name       string
+	SizeBytes  int64
+	Checksum   string
+	StorageURI string
 }
 
 type JobStore interface {

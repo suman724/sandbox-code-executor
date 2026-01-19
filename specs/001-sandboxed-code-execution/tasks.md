@@ -69,21 +69,21 @@ description: "Task list template for feature implementation"
 
 ### Tests for User Story 1 (MANDATORY) ⚠️
 
-- [ ] T021 [P] [US1] Replace placeholder job lifecycle tests in `control-plane/internal/orchestration/job_service_test.go`
-- [ ] T022 [P] [US1] Replace placeholder contract tests for /jobs in `control-plane/tests/contract/jobs_contract_test.go`
-- [ ] T023 [P] [US1] Replace placeholder integration test for one-shot flow in `control-plane/tests/integration/job_run_test.go`
-- [ ] T024 [P] [US1] Expand sandbox runner tests to include artifacts and failures in `data-plane/internal/execution/runner_test.go`
-- [ ] T025 [P] [US1] Add allowlist enforcement tests for denied deps in `data-plane/internal/runtime/deps_test.go`
+- [X] T021 [P] [US1] Replace placeholder job lifecycle tests in `control-plane/internal/orchestration/job_service_test.go`
+- [X] T022 [P] [US1] Replace placeholder contract tests for /jobs in `control-plane/tests/contract/jobs_contract_test.go`
+- [X] T023 [P] [US1] Replace placeholder integration test for one-shot flow in `control-plane/tests/integration/job_run_test.go`
+- [X] T024 [P] [US1] Expand sandbox runner tests to include artifacts and failures in `data-plane/internal/execution/runner_test.go`
+- [X] T025 [P] [US1] Add allowlist enforcement tests for denied deps in `data-plane/internal/runtime/deps_test.go`
 
 ### Implementation for User Story 1
 
-- [ ] T026 [P] [US1] Expand Job model fields (agent, policy, outputs, artifacts) in `control-plane/internal/orchestration/job.go`
-- [ ] T027 [US1] Implement job state transitions + persistence in `control-plane/internal/orchestration/job_service.go`
-- [ ] T028 [US1] Align /jobs POST/GET handlers with OpenAPI schemas in `control-plane/internal/api/handlers/jobs.go`
-- [ ] T029 [US1] Implement run create/get/terminate handlers in `data-plane/internal/runtime/handlers.go`
-- [ ] T030 [US1] Implement sandbox execution runner (workspace, stdout/stderr, artifacts) in `data-plane/internal/execution/runner.go`
-- [ ] T031 [US1] Implement artifact metadata + upload/download wiring in `data-plane/internal/workspace/artifacts.go` and `control-plane/internal/storage/artifacts.go`
-- [ ] T032 [US1] Add job audit events (accepted/running/finished) in `control-plane/internal/audit/logger.go`
+- [X] T026 [P] [US1] Expand Job model fields (agent, policy, outputs, artifacts) in `control-plane/internal/orchestration/job.go`
+- [X] T027 [US1] Implement job state transitions + persistence in `control-plane/internal/orchestration/job_service.go`
+- [X] T028 [US1] Align /jobs POST/GET handlers with OpenAPI schemas in `control-plane/internal/api/handlers/jobs.go`
+- [X] T029 [US1] Implement run create/get/terminate handlers in `data-plane/internal/runtime/handlers.go`
+- [X] T030 [US1] Implement sandbox execution runner (workspace, stdout/stderr, artifacts) in `data-plane/internal/execution/runner.go`
+- [X] T031 [US1] Implement artifact metadata + upload/download wiring in `data-plane/internal/workspace/artifacts.go` and `control-plane/internal/storage/artifacts.go`
+- [X] T032 [US1] Add job audit events (accepted/running/finished) in `control-plane/internal/audit/logger.go`
 
 **Checkpoint**: User Story 1 should be fully functional and testable independently
 

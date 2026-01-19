@@ -11,4 +11,8 @@ func TestDependencyAllowlist(t *testing.T) {
 	if err := ValidateDependencies(policy); err == nil {
 		t.Fatalf("expected non-allowlisted dependency to fail")
 	}
+	policy = DependencyPolicy{Allowlist: []string{}, Requested: []string{"a"}}
+	if err := ValidateDependencies(policy); err == nil {
+		t.Fatalf("expected empty allowlist to fail")
+	}
 }

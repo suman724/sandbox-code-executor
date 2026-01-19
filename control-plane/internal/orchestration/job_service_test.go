@@ -12,25 +12,28 @@ import (
 	"control-plane/pkg/client"
 )
 
-type mockJobStore struct{}
+type mockJobStore struct {
+	created []storage.Job
+	updated []string
+}
 
-func (mockJobStore) Create(ctx context.Context, job storage.Job) error {
+func (m *mockJobStore) Create(ctx context.Context, job storage.Job) error {
 	_ = ctx
 	if job.ID == "" {
 		return storageError("missing id")
 	}
+	m.created = append(m.created, job)
 	return nil
 }
 
-func (mockJobStore) Get(ctx context.Context, id string) (storage.Job, error) {
+func (m *mockJobStore) Get(ctx context.Context, id string) (storage.Job, error) {
 	_ = ctx
 	return storage.Job{ID: id, Status: string(JobQueued)}, nil
 }
 
-func (mockJobStore) UpdateStatus(ctx context.Context, id string, status string) error {
+func (m *mockJobStore) UpdateStatus(ctx context.Context, id string, status string) error {
 	_ = ctx
-	_ = id
-	_ = status
+	m.updated = append(m.updated, id+":"+status)
 	return nil
 }
 
@@ -68,8 +71,9 @@ func stubClient(runID string) *http.Client {
 }
 
 func TestJobServiceLifecycle(t *testing.T) {
+	store := &mockJobStore{}
 	svc := JobService{
-		Store:  mockJobStore{},
+		Store:  store,
 		Client: client.DataPlaneClient{BaseURL: "http://data-plane", Client: stubClient("run-1")},
 		Enforcer: PolicyEnforcer{
 			Evaluator: mockEvaluator{allowed: true},
@@ -79,11 +83,24 @@ func TestJobServiceLifecycle(t *testing.T) {
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
+	if len(store.created) != 1 {
+		t.Fatalf("expected job to be created")
+	}
+	foundRunning := false
+	for _, entry := range store.updated {
+		if entry == "job-1:"+string(JobRunning) {
+			foundRunning = true
+		}
+	}
+	if !foundRunning {
+		t.Fatalf("expected job status to update to running")
+	}
 }
 
 func TestJobServicePolicyDenied(t *testing.T) {
+	store := &mockJobStore{}
 	svc := JobService{
-		Store:  mockJobStore{},
+		Store:  store,
 		Client: client.DataPlaneClient{BaseURL: "http://data-plane", Client: stubClient("run-1")},
 		Enforcer: PolicyEnforcer{
 			Evaluator: mockEvaluator{allowed: false},
@@ -92,5 +109,8 @@ func TestJobServicePolicyDenied(t *testing.T) {
 	_, err := svc.CreateJob(context.Background(), Job{ID: "job-1", Language: "go", Status: JobQueued})
 	if err == nil {
 		t.Fatalf("expected policy denial error")
+	}
+	if len(store.created) != 0 {
+		t.Fatalf("expected no job to be created on denied policy")
 	}
 }

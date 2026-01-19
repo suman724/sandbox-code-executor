@@ -12,10 +12,11 @@ import (
 )
 
 type RunRequest struct {
-	JobID     string
-	Language  string
-	Code      string
-	Workspace string
+	JobID        string `json:"jobId"`
+	PolicyID     string `json:"policyId,omitempty"`
+	Language     string `json:"language"`
+	Code         string `json:"code"`
+	WorkspaceRef string `json:"workspaceRef"`
 }
 
 type RunResponse struct {

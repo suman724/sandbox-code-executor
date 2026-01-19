@@ -15,6 +15,12 @@ type JobService struct {
 }
 
 func (s JobService) CreateJob(ctx context.Context, job Job) (string, error) {
+	if job.ID == "" {
+		return "", errors.New("missing job id")
+	}
+	if job.Status == "" {
+		job.Status = JobQueued
+	}
 	if ok, err := s.Enforcer.Evaluate(ctx, job); err != nil {
 		return "", err
 	} else if !ok {
@@ -24,12 +30,17 @@ func (s JobService) CreateJob(ctx context.Context, job Job) (string, error) {
 		return "", err
 	}
 	resp, err := s.Client.StartRun(ctx, client.RunRequest{
-		JobID:     job.ID,
-		Language:  job.Language,
-		Code:      job.Code,
-		Workspace: job.Workspace,
+		JobID:        job.ID,
+		PolicyID:     job.PolicyID,
+		Language:     job.Language,
+		Code:         job.Code,
+		WorkspaceRef: job.Workspace,
 	})
 	if err != nil {
+		_ = s.Store.UpdateStatus(ctx, job.ID, string(JobFailed))
+		return "", err
+	}
+	if err := s.Store.UpdateStatus(ctx, job.ID, string(JobRunning)); err != nil {
 		return "", err
 	}
 	return resp.RunID, nil

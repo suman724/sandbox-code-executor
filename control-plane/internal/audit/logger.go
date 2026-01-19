@@ -51,3 +51,33 @@ func (StdoutLogger) ServiceStarted(ctx context.Context, tenantID string, service
 		Detail:   serviceID,
 	})
 }
+
+func (StdoutLogger) JobAccepted(ctx context.Context, tenantID string, jobID string) error {
+	return StdoutLogger{}.Log(ctx, Event{
+		TenantID: tenantID,
+		Action:   "job_accepted",
+		Outcome:  "ok",
+		Time:     time.Now(),
+		Detail:   jobID,
+	})
+}
+
+func (StdoutLogger) JobRunning(ctx context.Context, tenantID string, jobID string) error {
+	return StdoutLogger{}.Log(ctx, Event{
+		TenantID: tenantID,
+		Action:   "job_running",
+		Outcome:  "ok",
+		Time:     time.Now(),
+		Detail:   jobID,
+	})
+}
+
+func (StdoutLogger) JobFinished(ctx context.Context, tenantID string, jobID string, outcome string) error {
+	return StdoutLogger{}.Log(ctx, Event{
+		TenantID: tenantID,
+		Action:   "job_finished",
+		Outcome:  outcome,
+		Time:     time.Now(),
+		Detail:   jobID,
+	})
+}
