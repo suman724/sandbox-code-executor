@@ -5,6 +5,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 
+	"control-plane/internal/api/docs"
 	"control-plane/internal/api/handlers"
 	"control-plane/internal/api/middleware"
 	"control-plane/internal/audit"
@@ -84,6 +85,8 @@ func RouterWithDependencies(deps Dependencies) http.Handler {
 	r.Get("/healthz", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 	})
+	r.Get("/openapi.yaml", docs.OpenAPIHandler())
+	r.Get("/docs", docs.SwaggerUIHandler())
 
 	return r
 }

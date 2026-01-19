@@ -18,6 +18,8 @@ func Router() http.Handler {
 	r.Get("/healthz", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 	})
+	r.Get("/openapi.yaml", OpenAPIHandler())
+	r.Get("/docs", SwaggerUIHandler())
 
 	return r
 }

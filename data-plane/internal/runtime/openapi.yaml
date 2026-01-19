@@ -1,0 +1,85 @@
+openapi: 3.0.3
+info:
+  title: Sandboxed Code Execution Data Plane API
+  version: 0.1.0
+servers:
+  - url: http://sandbox-runner.internal
+paths:
+  /runs:
+    post:
+      summary: Start a sandbox run
+      description: Invoked by the control plane to provision and execute a sandbox.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RunCreate"
+      responses:
+        "202":
+          description: Run accepted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Run"
+  /runs/{runId}:
+    get:
+      summary: Get run status
+      parameters:
+        - name: runId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Run details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Run"
+  /runs/{runId}/terminate:
+    post:
+      summary: Terminate a run
+      parameters:
+        - name: runId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "202":
+          description: Termination accepted
+components:
+  schemas:
+    RunCreate:
+      type: object
+      required: [jobId, policyId, language, code, workspaceRef]
+      properties:
+        jobId:
+          type: string
+        policyId:
+          type: string
+        language:
+          type: string
+        code:
+          type: string
+        workspaceRef:
+          type: string
+    Run:
+      type: object
+      properties:
+        id:
+          type: string
+        status:
+          type: string
+        exitStatus:
+          type: integer
+        outputRef:
+          type: string
+        errorRef:
+          type: string
+        artifactRefs:
+          type: array
+          items:
+            type: string

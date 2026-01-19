@@ -65,6 +65,8 @@ export MCP_ADDR=':8090'
 - Validate MCP health: `curl http://localhost:8090/healthz`.
 - Validate Prometheus metrics (control plane): `curl http://localhost:8080/metrics`.
 - Validate Prometheus metrics (data plane): `curl http://localhost:8081/metrics`.
+- Validate API docs (control plane): `open http://localhost:8080/docs`.
+- Validate API docs (data plane): `open http://localhost:8081/docs`.
 
 ## Deployment Notes
 
