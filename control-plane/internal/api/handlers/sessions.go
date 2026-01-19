@@ -6,26 +6,41 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/go-chi/chi/v5"
+
 	"control-plane/internal/sessions"
 )
 
 type SessionHandler struct {
 	Service sessions.Service
+	Stepper sessions.StepService
 }
 
 type sessionRequest struct {
-	ID       string        `json:"id"`
-	TenantID string        `json:"tenant_id"`
-	PolicyID string        `json:"policy_id"`
-	TTL      time.Duration `json:"ttl"`
+	TenantID   string `json:"tenantId"`
+	AgentID    string `json:"agentId"`
+	PolicyID   string `json:"policyId"`
+	TTLSeconds int    `json:"ttlSeconds"`
 }
 
 type sessionResponse struct {
-	SessionID string `json:"session_id"`
-	RunID     string `json:"run_id"`
+	ID     string `json:"id"`
+	Status string `json:"status"`
+}
+
+type stepRequest struct {
+	Command string `json:"command"`
 }
 
 func (h SessionHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	if r.Method == http.MethodPost && chi.URLParam(r, "sessionId") != "" {
+		h.handleStep(w, r)
+		return
+	}
+	if r.Method != http.MethodPost {
+		w.WriteHeader(http.StatusMethodNotAllowed)
+		return
+	}
 	var req sessionRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		log.Printf("sessions: decode error: %v", err)
@@ -33,13 +48,14 @@ func (h SessionHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	session := sessions.Session{
-		ID:       req.ID,
+		ID:       "session-" + time.Now().UTC().Format("20060102150405"),
 		TenantID: req.TenantID,
+		AgentID:  req.AgentID,
 		PolicyID: req.PolicyID,
-		TTL:      req.TTL,
+		TTL:      time.Duration(req.TTLSeconds) * time.Second,
 		Status:   sessions.StatusActive,
 	}
-	runID, err := h.Service.CreateSession(r.Context(), session)
+	_, err := h.Service.CreateSession(r.Context(), session)
 	if err != nil {
 		log.Printf("sessions: create error: %v", err)
 		w.WriteHeader(http.StatusInternalServerError)
@@ -47,5 +63,33 @@ func (h SessionHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
-	_ = json.NewEncoder(w).Encode(sessionResponse{SessionID: session.ID, RunID: runID})
+	_ = json.NewEncoder(w).Encode(sessionResponse{ID: session.ID, Status: string(session.Status)})
+}
+
+func (h SessionHandler) handleStep(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		w.WriteHeader(http.StatusMethodNotAllowed)
+		return
+	}
+	var req stepRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	if req.Command == "" {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	if h.Stepper.Runner == nil {
+		w.WriteHeader(http.StatusNotImplemented)
+		return
+	}
+	stepID, err := h.Stepper.Run(r.Context(), chi.URLParam(r, "sessionId"), req.Command)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusAccepted)
+	_ = json.NewEncoder(w).Encode(map[string]string{"id": stepID, "status": "accepted"})
 }

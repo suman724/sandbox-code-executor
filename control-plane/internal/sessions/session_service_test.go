@@ -16,7 +16,7 @@ import (
 
 type mockSessionStore struct{}
 
-func (mockSessionStore) Create(ctx context.Context, session storage.Session) error {
+func (m *mockSessionStore) Create(ctx context.Context, session storage.Session) error {
 	_ = ctx
 	if session.ID == "" {
 		return storageError("missing id")
@@ -24,12 +24,12 @@ func (mockSessionStore) Create(ctx context.Context, session storage.Session) err
 	return nil
 }
 
-func (mockSessionStore) Get(ctx context.Context, id string) (storage.Session, error) {
+func (m *mockSessionStore) Get(ctx context.Context, id string) (storage.Session, error) {
 	_ = ctx
 	return storage.Session{ID: id, Status: string(StatusActive)}, nil
 }
 
-func (mockSessionStore) UpdateStatus(ctx context.Context, id string, status string) error {
+func (m *mockSessionStore) UpdateStatus(ctx context.Context, id string, status string) error {
 	_ = ctx
 	_ = id
 	_ = status
@@ -71,7 +71,7 @@ func (m mockEvaluator) Evaluate(ctx context.Context, input any) (policy.Decision
 
 func TestSessionLifecycle(t *testing.T) {
 	svc := Service{
-		Store:  mockSessionStore{},
+		Store:  &mockSessionStore{},
 		Client: client.DataPlaneClient{BaseURL: "http://data-plane", Client: stubClient("run-1")},
 		Enforcer: orchestration.PolicyEnforcer{
 			Evaluator: mockEvaluator{allowed: true},
@@ -83,9 +83,17 @@ func TestSessionLifecycle(t *testing.T) {
 	}
 }
 
+func TestSessionDefaultsExpiry(t *testing.T) {
+	now := time.Now()
+	expires := sessionExpires(Session{TTL: 0}, now)
+	if expires.Before(now.Add(14*time.Minute)) || expires.After(now.Add(16*time.Minute)) {
+		t.Fatalf("expected default TTL around 15 minutes, got %s", expires.Sub(now))
+	}
+}
+
 func TestSessionPolicyDenied(t *testing.T) {
 	svc := Service{
-		Store:  mockSessionStore{},
+		Store:  &mockSessionStore{},
 		Client: client.DataPlaneClient{BaseURL: "http://data-plane", Client: stubClient("run-1")},
 		Enforcer: orchestration.PolicyEnforcer{
 			Evaluator: mockEvaluator{allowed: false},

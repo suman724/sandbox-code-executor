@@ -97,19 +97,19 @@ description: "Task list template for feature implementation"
 
 ### Tests for User Story 2 (MANDATORY) ⚠️
 
-- [ ] T033 [P] [US2] Replace placeholder session lifecycle tests in `control-plane/internal/sessions/session_service_test.go`
-- [ ] T034 [P] [US2] Replace placeholder contract tests for /sessions in `control-plane/tests/contract/sessions_contract_test.go`
-- [ ] T035 [P] [US2] Replace placeholder integration test for session flow in `control-plane/tests/integration/session_flow_test.go`
+- [X] T033 [P] [US2] Replace placeholder session lifecycle tests in `control-plane/internal/sessions/session_service_test.go`
+- [X] T034 [P] [US2] Replace placeholder contract tests for /sessions in `control-plane/tests/contract/sessions_contract_test.go`
+- [X] T035 [P] [US2] Replace placeholder integration test for session flow in `control-plane/tests/integration/session_flow_test.go`
 
 ### Implementation for User Story 2
 
-- [ ] T036 [P] [US2] Expand Session and SessionStep models in `control-plane/internal/sessions/session.go`
-- [ ] T037 [US2] Implement session create + step execution logic in `control-plane/internal/sessions/session_service.go`
-- [ ] T038 [US2] Align /sessions POST and /sessions/{id}/steps handlers with OpenAPI in `control-plane/internal/api/handlers/sessions.go`
-- [ ] T039 [US2] Implement session runner for step execution in `data-plane/internal/execution/session_runner.go`
-- [ ] T040 [US2] Implement session workspace state handling in `data-plane/internal/workspace/session.go`
-- [ ] T041 [US2] Implement TTL cleanup worker (expiry + secure delete) in `control-plane/internal/sessions/ttl_worker.go`
-- [ ] T042 [US2] Add session audit events in `control-plane/internal/audit/logger.go`
+- [X] T036 [P] [US2] Expand Session and SessionStep models in `control-plane/internal/sessions/session.go`
+- [X] T037 [US2] Implement session create + step execution logic in `control-plane/internal/sessions/session_service.go`
+- [X] T038 [US2] Align /sessions POST and /sessions/{id}/steps handlers with OpenAPI in `control-plane/internal/api/handlers/sessions.go`
+- [X] T039 [US2] Implement session runner for step execution in `data-plane/internal/execution/session_runner.go`
+- [X] T040 [US2] Implement session workspace state handling in `data-plane/internal/workspace/session.go`
+- [X] T041 [US2] Implement TTL cleanup worker (expiry + secure delete) in `control-plane/internal/sessions/ttl_worker.go`
+- [X] T042 [US2] Add session audit events in `control-plane/internal/audit/logger.go`
 
 **Checkpoint**: User Stories 1 and 2 should both work independently
 

@@ -43,6 +43,18 @@ type SessionStore interface {
 	UpdateStatus(ctx context.Context, id string, status string) error
 }
 
+type SessionStepStore interface {
+	Append(ctx context.Context, step SessionStep) error
+	List(ctx context.Context, sessionID string) ([]SessionStep, error)
+}
+
+type SessionStep struct {
+	ID        string
+	SessionID string
+	Command   string
+	Status    string
+}
+
 type PolicyStore interface {
 	Upsert(ctx context.Context, policy Policy) error
 }

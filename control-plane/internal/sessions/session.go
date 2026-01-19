@@ -11,10 +11,23 @@ const (
 )
 
 type Session struct {
-	ID        string
-	TenantID  string
-	PolicyID  string
-	TTL       time.Duration
-	ExpiresAt time.Time
-	Status    Status
+	ID           string
+	TenantID     string
+	AgentID      string
+	PolicyID     string
+	TTL          time.Duration
+	ExpiresAt    time.Time
+	Status       Status
+	LastActivity time.Time
+	Steps        []SessionStep
+}
+
+type SessionStep struct {
+	ID         string
+	SessionID  string
+	Sequence   int
+	Command    string
+	Status     string
+	StartedAt  time.Time
+	FinishedAt time.Time
 }

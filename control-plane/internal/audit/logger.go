@@ -81,3 +81,23 @@ func (StdoutLogger) JobFinished(ctx context.Context, tenantID string, jobID stri
 		Detail:   jobID,
 	})
 }
+
+func (StdoutLogger) SessionCreated(ctx context.Context, tenantID string, sessionID string) error {
+	return StdoutLogger{}.Log(ctx, Event{
+		TenantID: tenantID,
+		Action:   "session_created",
+		Outcome:  "ok",
+		Time:     time.Now(),
+		Detail:   sessionID,
+	})
+}
+
+func (StdoutLogger) SessionStepAccepted(ctx context.Context, tenantID string, stepID string) error {
+	return StdoutLogger{}.Log(ctx, Event{
+		TenantID: tenantID,
+		Action:   "session_step_accepted",
+		Outcome:  "ok",
+		Time:     time.Now(),
+		Detail:   stepID,
+	})
+}
