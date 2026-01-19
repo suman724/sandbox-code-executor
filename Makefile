@@ -1,4 +1,4 @@
-.PHONY: build test lint format run run-local \
+.PHONY: build test lint format run run-local run-local-control-plane run-local-data-plane \
 	build-control-plane build-data-plane \
 	test-control-plane test-data-plane \
 	run-control-plane run-data-plane
@@ -27,12 +27,15 @@ format:
 
 run: run-control-plane run-data-plane
 
-run-local:
+run-local: run-local-control-plane run-local-data-plane
+
+run-local-control-plane:
 	@ENV=dev DATA_PLANE_URL=http://localhost:8081 DATABASE_DRIVER=sqlite DATABASE_URL='file:control-plane.db?cache=shared&mode=rwc' MCP_ADDR=:8090 AUTHZ_BYPASS=true \
-		$(MAKE) run-control-plane &
+		$(MAKE) run-control-plane
+
+run-local-data-plane:
 	@ENV=dev RUNTIME_NAMESPACE=default RUNTIME_CLASS=gvisor AUTHZ_BYPASS=true \
-		$(MAKE) run-data-plane &
-	@wait
+		$(MAKE) run-data-plane
 
 run-control-plane:
 	@cd control-plane && go run ./cmd/control-plane
