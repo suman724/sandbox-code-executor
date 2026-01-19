@@ -16,6 +16,15 @@
 4. Run `make run-control-plane` and `make run-data-plane` to start each service
    locally.
 
+### SQLite (non-production only)
+
+Set these environment variables to use SQLite for local testing:
+
+```bash
+export DATABASE_DRIVER=sqlite
+export DATABASE_URL='file:control-plane.db?cache=shared&mode=rwc'
+```
+
 ## Container Builds
 
 - Build control plane: `docker build -f control-plane/Dockerfile -t control-plane:dev .`

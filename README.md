@@ -133,13 +133,20 @@ docker build -f data-plane/Dockerfile -t data-plane:dev .
 Common environment variables:
 
 - Control plane:
-  - `ENV`, `DATA_PLANE_URL`, `DATABASE_URL`
+  - `ENV`, `DATA_PLANE_URL`, `DATABASE_DRIVER`, `DATABASE_URL`
   - `AUTH_JWT_SECRET`, `AUTH_ISSUER`, `AUTH_AUDIENCE`
   - `AUTHZ_BYPASS` (non-production only)
 - Data plane:
   - `ENV`, `RUNTIME_NAMESPACE`, `RUNTIME_CLASS`
   - `AUTH_JWT_SECRET`, `AUTH_ISSUER`, `AUTH_AUDIENCE`
   - `AUTHZ_BYPASS` (non-production only)
+
+SQLite can be used for non-production testing by setting:
+
+```bash
+DATABASE_DRIVER=sqlite
+DATABASE_URL=file:control-plane.db?cache=shared&mode=rwc
+```
 
 ## Additional documentation
 
