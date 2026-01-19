@@ -361,19 +361,19 @@ Return structured output:
 ```mermaid
 flowchart LR
   %% External
-  AG[LLM Agent
-(out of scope)] -->|MCP tool call| MCP[MCP Server
-Sandbox Tools]
+  AG["LLM Agent
+(out of scope)"] -->|MCP tool call| MCP["MCP Server
+Sandbox Tools"]
 
   %% Control Plane
-  subgraph CP[Control Plane]
-    APIGW[Sandbox API Gateway]
-    AUTH[AuthN/Z + Rate Limits]
-    POLICY[Policy Engine]
-    ORCH[Execution Orchestrator]
-    META[(Metadata DB)]
-    AUDIT[(Audit Log Store)]
-    CACHE[(Session Cache)]
+  subgraph CP["Control Plane"]
+    APIGW["Sandbox API Gateway"]
+    AUTH["AuthN/Z + Rate Limits"]
+    POLICY["Policy Engine"]
+    ORCH["Execution Orchestrator"]
+    META[("Metadata DB")]
+    AUDIT[("Audit Log Store")]
+    CACHE[("Session Cache")]
   end
 
   MCP --> APIGW
@@ -383,22 +383,22 @@ Sandbox Tools]
   ORCH --> CACHE
 
   %% Data Plane
-  subgraph DP[Data Plane]
+  subgraph DP["Data Plane"]
     direction LR
-    subgraph POOLS[Execution Pools]
-      GV[gVisor Pool
-(K8s runtimeClass)]
-      FC[Firecracker Pool
-(microVM hosts)]
+    subgraph POOLS["Execution Pools"]
+      GV["gVisor Pool
+(K8s runtimeClass)"]
+      FC["Firecracker Pool
+(microVM hosts)"]
     end
 
-    HOST[Sandbox Host Agent]
-    RUNNER[Runner/Supervisor
-(in sandbox)]
-    STREAM[Streaming Gateway]
-    ART[(Artifact Store)]
-    NET[Network Mediation
-(Egress Proxy/DNS policy)]
+    HOST["Sandbox Host Agent"]
+    RUNNER["Runner/Supervisor
+(in sandbox)"]
+    STREAM["Streaming Gateway"]
+    ART[("Artifact Store")]
+    NET["Network Mediation
+(Egress Proxy/DNS policy)"]
 
     GV --> HOST
     FC --> HOST
@@ -413,9 +413,9 @@ Sandbox Tools]
   ART -->|artifact refs / signed URLs| APIGW
 
   %% Ops / Governance (optional)
-  subgraph GOV[Governance (optional)]
-    ADMIN[Admin UI/API
-(Quotas, Policies)]
+  subgraph GOV["Governance (optional)"]
+    ADMIN["Admin UI/API
+(Quotas, Policies)"]
   end
   ADMIN --> POLICY
 ```
@@ -427,10 +427,10 @@ Sandbox Tools]
 ```mermaid
 sequenceDiagram
   autonumber
-  participant Agent as LLM Agent (out of scope)
-  participant MCP as MCP Server
-  participant GW as Sandbox API Gateway
-  participant Auth as AuthN/Z
+  participant Agent as "LLM Agent (out of scope)"
+  participant MCP as "MCP Server"
+  participant GW as "Sandbox API Gateway"
+  participant Auth as "AuthN/Z"
   participant Pol as Policy Engine
   participant Orch as Execution Orchestrator
   participant Host as Sandbox Host Agent
@@ -461,13 +461,13 @@ sequenceDiagram
 ```mermaid
 sequenceDiagram
   autonumber
-  participant Agent as LLM Agent (out of scope)
-  participant MCP as MCP Server
-  participant GW as Sandbox API Gateway
+  participant Agent as "LLM Agent (out of scope)"
+  participant MCP as "MCP Server"
+  participant GW as "Sandbox API Gateway"
   participant Pol as Policy Engine
   participant Orch as Execution Orchestrator
   participant Host as Sandbox Host Agent
-  participant Sess as Session Manager (in Orchestrator)
+  participant Sess as "Session Manager (in Orchestrator)"
   participant Sand as Sandbox Runner
 
   Agent->>MCP: sandbox.create_session(ttl, lang, base_image)
@@ -509,9 +509,9 @@ sequenceDiagram
 ```mermaid
 sequenceDiagram
   autonumber
-  participant Agent as LLM Agent (out of scope)
-  participant MCP as MCP Server
-  participant GW as Sandbox API Gateway
+  participant Agent as "LLM Agent (out of scope)"
+  participant MCP as "MCP Server"
+  participant GW as "Sandbox API Gateway"
   participant Orch as Execution Orchestrator
   participant Art as Artifact Store
   participant Host as Sandbox Host Agent
@@ -548,12 +548,12 @@ sequenceDiagram
 ```mermaid
 sequenceDiagram
   autonumber
-  participant MCP as MCP Server
-  participant GW as Sandbox API Gateway
+  participant MCP as "MCP Server"
+  participant GW as "Sandbox API Gateway"
   participant Pol as Policy Engine
   participant Orch as Execution Orchestrator
-  participant HostGV as Host Agent (gVisor Pool)
-  participant HostFC as Host Agent (Firecracker Pool)
+  participant HostGV as "Host Agent (gVisor Pool)"
+  participant HostFC as "Host Agent (Firecracker Pool)"
 
   MCP->>GW: POST /executions (RunRequest)
   GW->>Pol: Evaluate policy (tenant, language, net, risk)
@@ -596,5 +596,4 @@ sequenceDiagram
 - Content scanning + DLP on artifacts
 - Language plugins (Rust/Go/Java) with curated toolchains
 - Inline notebook protocol (optional) for richer agent workflows
-
 
