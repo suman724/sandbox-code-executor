@@ -15,5 +15,9 @@ func Router() http.Handler {
 	r.Get("/runs/{runId}", handler.ServeHTTP)
 	r.Post("/runs/{runId}/terminate", handler.ServeHTTP)
 
+	r.Get("/healthz", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	})
+
 	return r
 }

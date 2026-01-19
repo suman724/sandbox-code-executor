@@ -81,5 +81,9 @@ func RouterWithDependencies(deps Dependencies) http.Handler {
 	r.Post("/workflows", handlers.WorkflowHandler{Service: workflowService}.ServeHTTP)
 	r.Post("/services", handlers.ServiceHandler{Starter: deps.ServiceStarter}.ServeHTTP)
 
+	r.Get("/healthz", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	})
+
 	return r
 }
