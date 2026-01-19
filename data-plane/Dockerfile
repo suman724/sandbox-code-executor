@@ -2,6 +2,7 @@ FROM golang:1.23 AS build
 WORKDIR /src
 COPY data-plane/ ./data-plane/
 WORKDIR /src/data-plane
+ENV GOFLAGS="-mod=mod"
 RUN go mod download
 RUN go build -o /out/data-plane ./cmd/sandbox-runner
 
