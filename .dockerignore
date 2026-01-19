@@ -1,0 +1,11 @@
+.git/
+.codex/
+.specify/
+.specify/**
+*.log*
+.env*
+node_modules/
+vendor/
+coverage/
+.DS_Store
+Thumbs.db

@@ -7,6 +7,8 @@
 
 ## User Scenarios & Testing *(mandatory)*
 
+Each user story MUST specify unit and integration test coverage and how it will be validated.
+
 <!--
   IMPORTANT: User stories should be PRIORITIZED as user journeys ordered by importance.
   Each user story/journey must be INDEPENDENTLY TESTABLE - meaning if you implement just ONE of them,

@@ -1,0 +1,19 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: data-plane
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: data-plane
+  template:
+    metadata:
+      labels:
+        app: data-plane
+    spec:
+      containers:
+        - name: data-plane
+          image: data-plane:latest
+          ports:
+            - containerPort: 8081

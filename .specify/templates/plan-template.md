@@ -31,7 +31,11 @@
 
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
-[Gates determined based on constitution file]
+- Makefile targets `build`, `test`, `lint`, `format`, `run` defined and runnable
+- `AGENTS.md` present with workflow and conventions
+- Unit + integration tests planned for all changes
+- Error handling and observability (logs/metrics) designed
+- Performance/latency budgets identified for critical paths
 
 ## Project Structure
 
