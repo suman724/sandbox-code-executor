@@ -123,17 +123,17 @@ description: "Task list template for feature implementation"
 
 ### Tests for User Story 3 (MANDATORY) ⚠️
 
-- [ ] T043 [P] [US3] Replace placeholder policy CRUD tests in `control-plane/internal/policy/policy_service_test.go`
-- [ ] T044 [P] [US3] Replace placeholder contract tests for /policies in `control-plane/tests/contract/policies_contract_test.go`
-- [ ] T045 [P] [US3] Replace placeholder integration test for audit queries in `control-plane/tests/integration/audit_query_test.go`
+- [X] T043 [P] [US3] Replace placeholder policy CRUD tests in `control-plane/internal/policy/policy_service_test.go`
+- [X] T044 [P] [US3] Replace placeholder contract tests for /policies in `control-plane/tests/contract/policies_contract_test.go`
+- [X] T045 [P] [US3] Replace placeholder integration test for audit queries in `control-plane/tests/integration/audit_query_test.go`
 
 ### Implementation for User Story 3
 
-- [ ] T046 [US3] Implement policy store rules + versioning in `control-plane/internal/policy/policy_store.go`
-- [ ] T047 [US3] Align /policies handler validation with OpenAPI in `control-plane/internal/api/handlers/policies.go`
-- [ ] T048 [US3] Implement audit query filters (tenant, time range) in `control-plane/internal/api/handlers/audit.go`
-- [ ] T049 [US3] Wire policy enforcement inputs in `control-plane/internal/orchestration/job_service.go` and `control-plane/internal/sessions/session_service.go`
-- [ ] T050 [US3] Implement audit persistence wiring in `control-plane/internal/storage/postgres/policy_store.go`
+- [X] T046 [US3] Implement policy store rules + versioning in `control-plane/internal/policy/policy_store.go`
+- [X] T047 [US3] Align /policies handler validation with OpenAPI in `control-plane/internal/api/handlers/policies.go`
+- [X] T048 [US3] Implement audit query filters (tenant, time range) in `control-plane/internal/api/handlers/audit.go`
+- [X] T049 [US3] Wire policy enforcement inputs in `control-plane/internal/orchestration/job_service.go` and `control-plane/internal/sessions/session_service.go`
+- [X] T050 [US3] Implement audit persistence wiring in `control-plane/internal/storage/postgres/policy_store.go`
 
 **Checkpoint**: User Stories 1–3 should work independently
 

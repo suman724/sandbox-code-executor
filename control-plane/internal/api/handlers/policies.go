@@ -13,9 +13,10 @@ type PolicyHandler struct {
 }
 
 type policyRequest struct {
-	ID      string `json:"id"`
-	Version int    `json:"version"`
-	Ruleset string `json:"ruleset"`
+	TenantID string `json:"tenantId"`
+	Name     string `json:"name"`
+	Version  int    `json:"version"`
+	Ruleset  string `json:"ruleset"`
 }
 
 func (h PolicyHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -25,7 +26,12 @@ func (h PolicyHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
-	if err := h.Store.Upsert(r.Context(), policy.Policy{ID: req.ID, Version: req.Version, Ruleset: req.Ruleset}); err != nil {
+	if req.TenantID == "" || req.Name == "" {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	policyID := req.TenantID + ":" + req.Name
+	if err := h.Store.Upsert(r.Context(), policy.Policy{ID: policyID, Version: req.Version, Ruleset: req.Ruleset}); err != nil {
 		log.Printf("policies: upsert error: %v", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
