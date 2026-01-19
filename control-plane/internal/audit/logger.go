@@ -52,6 +52,16 @@ func (StdoutLogger) ServiceStarted(ctx context.Context, tenantID string, service
 	})
 }
 
+func (StdoutLogger) ServiceStopped(ctx context.Context, tenantID string, serviceID string) error {
+	return StdoutLogger{}.Log(ctx, Event{
+		TenantID: tenantID,
+		Action:   "service_stopped",
+		Outcome:  "ok",
+		Time:     time.Now(),
+		Detail:   serviceID,
+	})
+}
+
 func (StdoutLogger) JobAccepted(ctx context.Context, tenantID string, jobID string) error {
 	return StdoutLogger{}.Log(ctx, Event{
 		TenantID: tenantID,

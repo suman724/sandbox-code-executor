@@ -16,4 +16,6 @@ type Service struct {
 	PolicyID  string
 	Status    Status
 	StartedAt time.Time
+	StoppedAt time.Time
+	ProxyURL  string
 }

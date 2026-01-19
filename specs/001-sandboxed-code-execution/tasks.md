@@ -147,17 +147,17 @@ description: "Task list template for feature implementation"
 
 ### Tests for User Story 4 (MANDATORY) ⚠️
 
-- [ ] T051 [P] [US4] Replace placeholder service lifecycle tests in `control-plane/internal/services/service_service_test.go`
-- [ ] T052 [P] [US4] Replace placeholder contract tests for /services in `control-plane/tests/contract/services_contract_test.go`
-- [ ] T053 [P] [US4] Replace placeholder integration test for service proxy flow in `control-plane/tests/integration/service_proxy_test.go`
+- [X] T051 [P] [US4] Replace placeholder service lifecycle tests in `control-plane/internal/services/service_service_test.go`
+- [X] T052 [P] [US4] Replace placeholder contract tests for /services in `control-plane/tests/contract/services_contract_test.go`
+- [X] T053 [P] [US4] Replace placeholder integration test for service proxy flow in `control-plane/tests/integration/service_proxy_test.go`
 
 ### Implementation for User Story 4
 
-- [ ] T054 [P] [US4] Expand Service model fields in `control-plane/internal/services/service.go`
-- [ ] T055 [US4] Align /services handler response + proxy URL with OpenAPI in `control-plane/internal/api/handlers/services.go`
-- [ ] T056 [US4] Implement sandbox service runner lifecycle in `data-plane/internal/runtime/service_runner.go`
-- [ ] T057 [US4] Implement proxy registration/teardown in `data-plane/internal/runtime/proxy.go`
-- [ ] T058 [US4] Add service audit events in `control-plane/internal/audit/logger.go` and `data-plane/internal/telemetry/logger.go`
+- [X] T054 [P] [US4] Expand Service model fields in `control-plane/internal/services/service.go`
+- [X] T055 [US4] Align /services handler response + proxy URL with OpenAPI in `control-plane/internal/api/handlers/services.go`
+- [X] T056 [US4] Implement sandbox service runner lifecycle in `data-plane/internal/runtime/service_runner.go`
+- [X] T057 [US4] Implement proxy registration/teardown in `data-plane/internal/runtime/proxy.go`
+- [X] T058 [US4] Add service audit events in `control-plane/internal/audit/logger.go` and `data-plane/internal/telemetry/logger.go`
 
 **Checkpoint**: User Stories 1–4 should work independently
 

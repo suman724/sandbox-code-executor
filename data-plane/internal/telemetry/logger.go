@@ -36,3 +36,14 @@ func (StdoutLogger) ServiceStopped(ctx context.Context, tenantID string, runID s
 		Detail:   runID,
 	})
 }
+
+func (StdoutLogger) ServiceStarted(ctx context.Context, tenantID string, runID string) error {
+	return StdoutLogger{}.Log(ctx, Event{
+		TenantID: tenantID,
+		RunID:    runID,
+		Action:   "service_started",
+		Outcome:  "ok",
+		Time:     time.Now(),
+		Detail:   runID,
+	})
+}
