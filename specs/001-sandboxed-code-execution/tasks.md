@@ -205,12 +205,12 @@ description: "Task list template for feature implementation"
 
 **Purpose**: Expose agent-accessible tools via MCP for job/session/artifact/workflow operations
 
-- [ ] T074 [P] Implement MCP server wiring in `control-plane/internal/mcp/server.go` and `control-plane/internal/mcp/router.go`
-- [ ] T075 Implement MCP jobs tool in `control-plane/internal/mcp/tools/jobs.go`
-- [ ] T076 Implement MCP sessions tool in `control-plane/internal/mcp/tools/sessions.go`
-- [ ] T077 Implement MCP artifacts tool in `control-plane/internal/mcp/tools/artifacts.go`
-- [ ] T078 Implement MCP workflows tool in `control-plane/internal/mcp/tools/workflows.go`
-- [ ] T079 Replace placeholder MCP integration tests in `control-plane/tests/integration/mcp_tools_test.go`
+- [X] T074 [P] Implement MCP server wiring in `control-plane/internal/mcp/server.go` and `control-plane/internal/mcp/router.go`
+- [X] T075 Implement MCP jobs tool in `control-plane/internal/mcp/tools/jobs.go`
+- [X] T076 Implement MCP sessions tool in `control-plane/internal/mcp/tools/sessions.go`
+- [X] T077 Implement MCP artifacts tool in `control-plane/internal/mcp/tools/artifacts.go`
+- [X] T078 Implement MCP workflows tool in `control-plane/internal/mcp/tools/workflows.go`
+- [X] T079 Replace placeholder MCP integration tests in `control-plane/tests/integration/mcp_tools_test.go`
 
 ---
 

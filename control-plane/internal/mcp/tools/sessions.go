@@ -1,9 +1,15 @@
 package tools
 
-import "net/http"
+import (
+	"net/http"
 
-type SessionsTool struct{}
+	"control-plane/internal/api/handlers"
+)
 
-func (SessionsTool) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	w.WriteHeader(http.StatusNotImplemented)
+type SessionsTool struct {
+	Handler handlers.SessionHandler
+}
+
+func (t SessionsTool) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	t.Handler.ServeHTTP(w, r)
 }

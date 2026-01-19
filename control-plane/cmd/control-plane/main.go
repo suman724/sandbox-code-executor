@@ -7,12 +7,15 @@ import (
 	"os"
 
 	"control-plane/internal/api"
+	"control-plane/internal/api/handlers"
 	"control-plane/internal/audit"
 	"control-plane/internal/config"
+	"control-plane/internal/mcp"
 	"control-plane/internal/orchestration"
 	"control-plane/internal/policy"
 	"control-plane/internal/sessions"
 	storefactory "control-plane/internal/storage/factory"
+	"control-plane/internal/storage/object"
 	"control-plane/pkg/client"
 )
 
@@ -60,6 +63,22 @@ func main() {
 		SessionService: &sessionService,
 		PolicyStore:    policy.NewInMemoryStore(),
 		AuditStore:     &audit.InMemoryStore{},
+	}
+
+	if cfg.MCPAddr != "" {
+		mcpDeps := mcp.Dependencies{
+			JobsHandler:      handlers.JobHandler{Service: jobService, Store: stores.JobStore},
+			SessionsHandler:  handlers.SessionHandler{Service: sessionService},
+			WorkflowsHandler: handlers.WorkflowHandler{},
+			ArtifactStore:    object.ArtifactStore{BaseURL: cfg.ArtifactBucket},
+		}
+		server := mcp.NewServer(cfg.MCPAddr, mcp.RouterWithDependencies(mcpDeps))
+		go func() {
+			log.Printf("mcp server starting addr=%s", cfg.MCPAddr)
+			if err := server.ListenAndServe(); err != nil {
+				log.Fatalf("mcp server error: %v", err)
+			}
+		}()
 	}
 
 	if err := http.ListenAndServe(addr, api.RouterWithDependencies(deps)); err != nil {

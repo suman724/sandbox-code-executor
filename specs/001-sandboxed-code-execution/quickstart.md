@@ -25,6 +25,15 @@ export DATABASE_DRIVER=sqlite
 export DATABASE_URL='file:control-plane.db?cache=shared&mode=rwc'
 ```
 
+### MCP server (separate port)
+
+The MCP tool interface runs on its own port. Set `MCP_ADDR` before starting
+the control plane, for example:
+
+```bash
+export MCP_ADDR=':8090'
+```
+
 ## Container Builds
 
 - Build control plane: `docker build -f control-plane/Dockerfile -t control-plane:dev .`

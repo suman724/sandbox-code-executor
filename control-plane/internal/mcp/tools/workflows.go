@@ -1,9 +1,15 @@
 package tools
 
-import "net/http"
+import (
+	"net/http"
 
-type WorkflowsTool struct{}
+	"control-plane/internal/api/handlers"
+)
 
-func (WorkflowsTool) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	w.WriteHeader(http.StatusNotImplemented)
+type WorkflowsTool struct {
+	Handler handlers.WorkflowHandler
+}
+
+func (t WorkflowsTool) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	t.Handler.ServeHTTP(w, r)
 }

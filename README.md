@@ -133,7 +133,7 @@ docker build -f data-plane/Dockerfile -t data-plane:dev .
 Common environment variables:
 
 - Control plane:
-  - `ENV`, `DATA_PLANE_URL`, `DATABASE_DRIVER`, `DATABASE_URL`
+  - `ENV`, `DATA_PLANE_URL`, `DATABASE_DRIVER`, `DATABASE_URL`, `MCP_ADDR`
   - `AUTH_JWT_SECRET`, `AUTH_ISSUER`, `AUTH_AUDIENCE`
   - `AUTHZ_BYPASS` (non-production only)
 - Data plane:
@@ -147,6 +147,15 @@ SQLite can be used for non-production testing by setting:
 DATABASE_DRIVER=sqlite
 DATABASE_URL=file:control-plane.db?cache=shared&mode=rwc
 ```
+
+MCP tools run on a separate HTTP server and port. Set `MCP_ADDR` (for example
+`:8090`) to enable the MCP server.
+
+MCP endpoints:
+- `POST /tools/jobs`, `GET /tools/jobs/{jobId}`
+- `POST /tools/sessions`, `POST /tools/sessions/{sessionId}/steps`
+- `POST /tools/workflows`
+- `POST /tools/artifacts/upload`, `GET /tools/artifacts/{artifactId}/download`
 
 ## Additional documentation
 
