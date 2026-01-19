@@ -111,3 +111,43 @@ func (StdoutLogger) SessionStepAccepted(ctx context.Context, tenantID string, st
 		Detail:   stepID,
 	})
 }
+
+func WorkflowStarted(ctx context.Context, logger Logger, tenantID string, workflowID string) error {
+	return logger.Log(ctx, Event{
+		TenantID: tenantID,
+		Action:   "workflow_started",
+		Outcome:  "ok",
+		Time:     time.Now(),
+		Detail:   workflowID,
+	})
+}
+
+func WorkflowStepStarted(ctx context.Context, logger Logger, tenantID string, workflowID string, stepID string) error {
+	return logger.Log(ctx, Event{
+		TenantID: tenantID,
+		Action:   "workflow_step_started",
+		Outcome:  "ok",
+		Time:     time.Now(),
+		Detail:   workflowID + ":" + stepID,
+	})
+}
+
+func WorkflowStepFinished(ctx context.Context, logger Logger, tenantID string, workflowID string, stepID string, outcome string) error {
+	return logger.Log(ctx, Event{
+		TenantID: tenantID,
+		Action:   "workflow_step_finished",
+		Outcome:  outcome,
+		Time:     time.Now(),
+		Detail:   workflowID + ":" + stepID,
+	})
+}
+
+func WorkflowFinished(ctx context.Context, logger Logger, tenantID string, workflowID string) error {
+	return logger.Log(ctx, Event{
+		TenantID: tenantID,
+		Action:   "workflow_finished",
+		Outcome:  "ok",
+		Time:     time.Now(),
+		Detail:   workflowID,
+	})
+}

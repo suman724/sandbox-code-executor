@@ -171,17 +171,17 @@ description: "Task list template for feature implementation"
 
 ### Tests for User Story 5 (MANDATORY) ⚠️
 
-- [ ] T059 [P] [US5] Replace placeholder workflow tests in `control-plane/internal/orchestration/workflow_service_test.go`
-- [ ] T060 [P] [US5] Replace placeholder contract tests for /workflows in `control-plane/tests/contract/workflows_contract_test.go`
-- [ ] T061 [P] [US5] Replace placeholder integration test for workflow run in `control-plane/tests/integration/workflow_run_test.go`
+- [X] T059 [P] [US5] Replace placeholder workflow tests in `control-plane/internal/orchestration/workflow_service_test.go`
+- [X] T060 [P] [US5] Replace placeholder contract tests for /workflows in `control-plane/tests/contract/workflows_contract_test.go`
+- [X] T061 [P] [US5] Replace placeholder integration test for workflow run in `control-plane/tests/integration/workflow_run_test.go`
 
 ### Implementation for User Story 5
 
-- [ ] T062 [P] [US5] Expand Workflow and WorkflowStep models in `control-plane/internal/orchestration/workflow.go`
-- [ ] T063 [US5] Implement workflow orchestration logic in `control-plane/internal/orchestration/workflow_service.go`
-- [ ] T064 [US5] Align /workflows handler with OpenAPI in `control-plane/internal/api/handlers/workflows.go`
-- [ ] T065 [US5] Implement shared memory store in `control-plane/internal/orchestration/memory_store.go`
-- [ ] T066 [US5] Add workflow audit events in `control-plane/internal/audit/logger.go`
+- [X] T062 [P] [US5] Expand Workflow and WorkflowStep models in `control-plane/internal/orchestration/workflow.go`
+- [X] T063 [US5] Implement workflow orchestration logic in `control-plane/internal/orchestration/workflow_service.go`
+- [X] T064 [US5] Align /workflows handler with OpenAPI in `control-plane/internal/api/handlers/workflows.go`
+- [X] T065 [US5] Implement shared memory store in `control-plane/internal/orchestration/memory_store.go`
+- [X] T066 [US5] Add workflow audit events in `control-plane/internal/audit/logger.go`
 
 **Checkpoint**: All user stories should now be independently functional
 
