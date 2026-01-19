@@ -27,6 +27,8 @@ jobs:
   docker:
     runs-on: ubuntu-latest
     if: github.event_name == 'push'
+    env:
+      DOCKER_PLATFORMS: ${{ github.ref_name == 'main' && 'linux/amd64,linux/arm64' || 'linux/amd64' }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -57,7 +59,9 @@ jobs:
           context: .
           file: control-plane/Dockerfile
           push: true
-          platforms: linux/amd64,linux/arm64
+          platforms: ${{ env.DOCKER_PLATFORMS }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
           tags: ${{ steps.meta_control.outputs.tags }}
           labels: ${{ steps.meta_control.outputs.labels }}
 
@@ -77,6 +81,8 @@ jobs:
           context: .
           file: data-plane/Dockerfile
           push: true
-          platforms: linux/amd64,linux/arm64
+          platforms: ${{ env.DOCKER_PLATFORMS }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
           tags: ${{ steps.meta_data.outputs.tags }}
           labels: ${{ steps.meta_data.outputs.labels }}

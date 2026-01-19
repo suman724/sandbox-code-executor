@@ -1,9 +1,10 @@
 FROM golang:1.23 AS build
 WORKDIR /src
-COPY control-plane/ ./control-plane/
+COPY control-plane/go.mod control-plane/go.sum ./control-plane/
 WORKDIR /src/control-plane
 ENV GOFLAGS="-mod=mod"
 RUN go mod download
+COPY control-plane/ ./control-plane/
 RUN go build -o /out/control-plane ./cmd/control-plane
 
 FROM gcr.io/distroless/base-debian12
