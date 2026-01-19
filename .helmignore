@@ -1,0 +1,17 @@
+.git/
+.gitignore
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+*.tmp
+*.bak
+*.log
+.env*
+*.secret.yaml
+secrets/
+.kube/
+kubeconfig*
+*.key
+*.crt

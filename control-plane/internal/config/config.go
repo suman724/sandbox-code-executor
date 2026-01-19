@@ -6,16 +6,30 @@ import (
 )
 
 type Config struct {
-	Env         string
-	DataPlaneURL string
-	AuthzBypass bool
+	Env            string
+	DataPlaneURL   string
+	DatabaseURL    string
+	ArtifactBucket string
+	OtelEndpoint   string
+	OtelService    string
+	AuthIssuer     string
+	AuthAudience   string
+	MCPAddr        string
+	AuthzBypass    bool
 }
 
 func Load() (Config, error) {
 	cfg := Config{
-		Env:          os.Getenv("ENV"),
-		DataPlaneURL: os.Getenv("DATA_PLANE_URL"),
-		AuthzBypass:  os.Getenv("AUTHZ_BYPASS") == "true",
+		Env:            os.Getenv("ENV"),
+		DataPlaneURL:   os.Getenv("DATA_PLANE_URL"),
+		DatabaseURL:    os.Getenv("DATABASE_URL"),
+		ArtifactBucket: os.Getenv("ARTIFACT_BUCKET"),
+		OtelEndpoint:   os.Getenv("OTEL_EXPORTER_OTLP_ENDPOINT"),
+		OtelService:    os.Getenv("OTEL_SERVICE_NAME"),
+		AuthIssuer:     os.Getenv("AUTH_ISSUER"),
+		AuthAudience:   os.Getenv("AUTH_AUDIENCE"),
+		MCPAddr:        os.Getenv("MCP_ADDR"),
+		AuthzBypass:    os.Getenv("AUTHZ_BYPASS") == "true",
 	}
 	return cfg, cfg.Validate()
 }

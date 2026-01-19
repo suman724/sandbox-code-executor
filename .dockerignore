@@ -9,3 +9,7 @@ vendor/
 coverage/
 .DS_Store
 Thumbs.db
+Dockerfile*
+.dockerignore
+*.test
+*.out
