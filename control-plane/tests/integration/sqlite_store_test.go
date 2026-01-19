@@ -6,11 +6,12 @@ import (
 
 	"control-plane/internal/orchestration"
 	"control-plane/internal/storage"
+	storefactory "control-plane/internal/storage/factory"
 )
 
 func TestSQLiteStoresIntegration(t *testing.T) {
 	ctx := context.Background()
-	stores, err := storage.NewStoreSet(ctx, "sqlite", "file:memdb1?mode=memory&cache=shared")
+	stores, err := storefactory.NewStoreSet(ctx, "sqlite", "file:memdb1?mode=memory&cache=shared")
 	if err != nil {
 		t.Fatalf("open sqlite stores: %v", err)
 	}

@@ -12,7 +12,7 @@ import (
 	"control-plane/internal/orchestration"
 	"control-plane/internal/policy"
 	"control-plane/internal/sessions"
-	"control-plane/internal/storage"
+	storefactory "control-plane/internal/storage/factory"
 	"control-plane/pkg/client"
 )
 
@@ -25,7 +25,7 @@ func main() {
 	addr := ":" + getenv("PORT", "8080")
 	log.Printf("control-plane starting env=%s addr=%s", cfg.Env, addr)
 
-	stores, err := storage.NewStoreSet(context.Background(), cfg.DatabaseDriver, cfg.DatabaseURL)
+	stores, err := storefactory.NewStoreSet(context.Background(), cfg.DatabaseDriver, cfg.DatabaseURL)
 	if err != nil {
 		log.Fatalf("storage error: %v", err)
 	}
