@@ -10,9 +10,12 @@ import (
 	"data-plane/internal/config"
 	"data-plane/internal/runtime"
 
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
+	"go.opentelemetry.io/otel/exporters/prometheus"
 	"go.opentelemetry.io/otel/propagation"
+	sdkmetric "go.opentelemetry.io/otel/sdk/metric"
 	"go.opentelemetry.io/otel/sdk/resource"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 	semconv "go.opentelemetry.io/otel/semconv/v1.26.0"
@@ -31,19 +34,26 @@ func main() {
 	if serviceName == "" {
 		serviceName = "data-plane"
 	}
-	shutdown, err := initTelemetry(context.Background(), serviceName, cfg.OtelEndpoint)
+	telemetry, err := initTelemetry(context.Background(), serviceName, cfg.OtelEndpoint)
 	if err != nil {
 		log.Fatalf("otel init error: %v", err)
 	}
 	defer func() {
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
-		if err := shutdown(ctx); err != nil {
+		if err := telemetry.Shutdown(ctx); err != nil {
 			log.Printf("otel shutdown error: %v", err)
 		}
 	}()
 
-	if err := http.ListenAndServe(addr, runtime.Router()); err != nil {
+	apiHandler := runtime.Router()
+	if telemetry.MetricsHandler != nil {
+		mux := http.NewServeMux()
+		mux.Handle("/metrics", telemetry.MetricsHandler)
+		mux.Handle("/", apiHandler)
+		apiHandler = mux
+	}
+	if err := http.ListenAndServe(addr, apiHandler); err != nil {
 		log.Fatalf("server error: %v", err)
 	}
 }
@@ -55,19 +65,24 @@ func getenv(key, fallback string) string {
 	return fallback
 }
 
-func initTelemetry(ctx context.Context, serviceName string, endpoint string) (func(context.Context) error, error) {
+type telemetryInit struct {
+	Shutdown       func(context.Context) error
+	MetricsHandler http.Handler
+}
+
+func initTelemetry(ctx context.Context, serviceName string, endpoint string) (telemetryInit, error) {
 	otel.SetTextMapPropagator(propagation.TraceContext{})
 	res, err := resource.New(ctx, resource.WithAttributes(
 		semconv.ServiceNameKey.String(serviceName),
 	))
 	if err != nil {
-		return nil, err
+		return telemetryInit{}, err
 	}
 	var tracerProvider *sdktrace.TracerProvider
 	if endpoint != "" {
 		exporter, err := otlptracegrpc.New(ctx, otlptracegrpc.WithEndpoint(endpoint), otlptracegrpc.WithInsecure())
 		if err != nil {
-			return nil, err
+			return telemetryInit{}, err
 		}
 		tracerProvider = sdktrace.NewTracerProvider(
 			sdktrace.WithResource(res),
@@ -78,11 +93,23 @@ func initTelemetry(ctx context.Context, serviceName string, endpoint string) (fu
 			sdktrace.WithResource(res),
 		)
 	}
+	metricsExporter, err := prometheus.New()
+	if err != nil {
+		return telemetryInit{}, err
+	}
+	meterProvider := sdkmetric.NewMeterProvider(
+		sdkmetric.WithResource(res),
+		sdkmetric.WithReader(metricsExporter),
+	)
 	otel.SetTracerProvider(tracerProvider)
-	return func(ctx context.Context) error {
-		if err := tracerProvider.Shutdown(ctx); err != nil {
-			return err
-		}
-		return nil
+	otel.SetMeterProvider(meterProvider)
+	return telemetryInit{
+		Shutdown: func(ctx context.Context) error {
+			if err := tracerProvider.Shutdown(ctx); err != nil {
+				return err
+			}
+			return meterProvider.Shutdown(ctx)
+		},
+		MetricsHandler: promhttp.Handler(),
 	}, nil
 }

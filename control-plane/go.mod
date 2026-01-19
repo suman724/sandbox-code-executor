@@ -8,7 +8,10 @@ require (
 	github.com/jackc/pgx/v5 v5.5.5
 	github.com/open-policy-agent/opa v0.67.1
 	go.opentelemetry.io/otel v1.26.0
+	go.opentelemetry.io/otel/exporters/prometheus v0.49.0
 	go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc v1.26.0
 	go.opentelemetry.io/otel/sdk v1.26.0
+	go.opentelemetry.io/otel/sdk/metric v1.26.0
+	github.com/prometheus/client_golang v1.19.1
 	modernc.org/sqlite v1.28.0
 )
