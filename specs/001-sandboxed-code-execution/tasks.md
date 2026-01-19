@@ -225,6 +225,13 @@ description: "Task list template for feature implementation"
 
 ---
 
+## Deferred Follow-ups
+
+**Purpose**: Items identified for later hardening.
+
+- [ ] T084 Implement artifact persistence beyond no-op validation in `control-plane/internal/storage/object/artifact_store.go`
+- [ ] T085 Wire audit store to persistent backing (Postgres/SQLite) in `control-plane/cmd/control-plane/main.go` and `control-plane/internal/audit/store.go`
+
 ## Dependencies & Execution Order
 
 ### Phase Dependencies
