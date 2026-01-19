@@ -187,27 +187,41 @@ description: "Task list template for feature implementation"
 
 ---
 
-## Phase 8: MCP Tool Interface (Cross-Cutting)
+## Phase 8: Database Abstraction & SQLite Support (Cross-Cutting)
 
-**Purpose**: Expose agent-accessible tools via MCP for job/session/artifact/workflow operations
+**Purpose**: Support Postgres and SQLite for non-production testing without changing service logic.
 
-- [ ] T067 [P] Implement MCP server wiring in `control-plane/internal/mcp/server.go` and `control-plane/internal/mcp/router.go`
-- [ ] T068 Implement MCP jobs tool in `control-plane/internal/mcp/tools/jobs.go`
-- [ ] T069 Implement MCP sessions tool in `control-plane/internal/mcp/tools/sessions.go`
-- [ ] T070 Implement MCP artifacts tool in `control-plane/internal/mcp/tools/artifacts.go`
-- [ ] T071 Implement MCP workflows tool in `control-plane/internal/mcp/tools/workflows.go`
-- [ ] T072 Replace placeholder MCP integration tests in `control-plane/tests/integration/mcp_tools_test.go`
+- [X] T067 [P] Add database driver configuration and validation in `control-plane/internal/config/config.go`
+- [X] T068 [P] Add SQLite schema + migration helper in `control-plane/internal/storage/sqlite/schema.sql` and `control-plane/internal/storage/sqlite/migrate.go`
+- [X] T069 [P] Implement SQLite job/session stores in `control-plane/internal/storage/sqlite/job_store.go` and `control-plane/internal/storage/sqlite/session_store.go`
+- [X] T070 [P] Implement SQLite policy/audit stores in `control-plane/internal/storage/sqlite/policy_store.go` and `control-plane/internal/storage/sqlite/audit_store.go`
+- [X] T071 [P] Implement SQLite idempotency store in `control-plane/internal/orchestration/sqlite_idempotency_store.go`
+- [X] T072 Add store factory + wiring for Postgres/SQLite in `control-plane/internal/storage/factory.go`, `control-plane/internal/api/router.go`, and `control-plane/cmd/control-plane/main.go`
+- [X] T073 [P] Add SQLite-backed tests for non-production scenarios in `control-plane/tests/integration/sqlite_store_test.go`
 
 ---
 
-## Phase 9: Polish & Cross-Cutting Concerns
+## Phase 9: MCP Tool Interface (Cross-Cutting)
+
+**Purpose**: Expose agent-accessible tools via MCP for job/session/artifact/workflow operations
+
+- [ ] T074 [P] Implement MCP server wiring in `control-plane/internal/mcp/server.go` and `control-plane/internal/mcp/router.go`
+- [ ] T075 Implement MCP jobs tool in `control-plane/internal/mcp/tools/jobs.go`
+- [ ] T076 Implement MCP sessions tool in `control-plane/internal/mcp/tools/sessions.go`
+- [ ] T077 Implement MCP artifacts tool in `control-plane/internal/mcp/tools/artifacts.go`
+- [ ] T078 Implement MCP workflows tool in `control-plane/internal/mcp/tools/workflows.go`
+- [ ] T079 Replace placeholder MCP integration tests in `control-plane/tests/integration/mcp_tools_test.go`
+
+---
+
+## Phase 10: Polish & Cross-Cutting Concerns
 
 **Purpose**: Improvements that affect multiple user stories
 
-- [ ] T073 [P] Add OpenTelemetry init and propagation in `control-plane/cmd/control-plane/main.go` and `data-plane/cmd/sandbox-runner/main.go`
-- [ ] T074 Add metrics for latency/queue depth/denials in `control-plane/internal/orchestration/job_service.go` and `data-plane/internal/execution/runner.go`
-- [ ] T075 [P] Flesh out k6 scenarios in `control-plane/tests/integration/k6/jobs.js` and `control-plane/tests/integration/k6/sessions.js`
-- [ ] T076 Update validation steps in `specs/001-sandboxed-code-execution/quickstart.md`
+- [ ] T080 [P] Add OpenTelemetry init and propagation in `control-plane/cmd/control-plane/main.go` and `data-plane/cmd/sandbox-runner/main.go`
+- [ ] T081 Add metrics for latency/queue depth/denials in `control-plane/internal/orchestration/job_service.go` and `data-plane/internal/execution/runner.go`
+- [ ] T082 [P] Flesh out k6 scenarios in `control-plane/tests/integration/k6/jobs.js` and `control-plane/tests/integration/k6/sessions.js`
+- [ ] T083 Update validation steps in `specs/001-sandboxed-code-execution/quickstart.md`
 
 ---
 
@@ -220,7 +234,8 @@ description: "Task list template for feature implementation"
 - **User Stories (Phase 3+)**: All depend on Foundational phase completion
   - User stories can then proceed in parallel (if staffed)
   - Or sequentially in priority order (P1 → P2 → P3)
-- **MCP Tools (Phase 8)**: Depends on Foundational and User Story 1 completion
+- **Database Abstraction (Phase 8)**: Depends on Foundational completion
+- **MCP Tools (Phase 9)**: Depends on Foundational and User Story 1 completion
 - **Polish (Final Phase)**: Depends on all desired user stories being complete
 
 ### User Story Dependencies
