@@ -19,6 +19,7 @@ import (
 	"control-plane/internal/storage/object"
 	"control-plane/pkg/client"
 
+	"github.com/go-chi/chi/v5"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
@@ -109,13 +110,12 @@ func main() {
 	}
 
 	apiHandler := api.RouterWithDependencies(deps)
+	router := chi.NewRouter()
 	if telemetry.MetricsHandler != nil {
-		mux := http.NewServeMux()
-		mux.Handle("/metrics", telemetry.MetricsHandler)
-		mux.Handle("/", apiHandler)
-		apiHandler = mux
+		router.Handle("/metrics", telemetry.MetricsHandler)
 	}
-	if err := http.ListenAndServe(addr, apiHandler); err != nil {
+	router.Mount("/", apiHandler)
+	if err := http.ListenAndServe(addr, router); err != nil {
 		log.Fatalf("server error: %v", err)
 	}
 }
