@@ -218,12 +218,19 @@ description: "Task list template for feature implementation"
 
 **Purpose**: Improvements that affect multiple user stories
 
-- [ ] T080 [P] Add OpenTelemetry init and propagation in `control-plane/cmd/control-plane/main.go` and `data-plane/cmd/sandbox-runner/main.go`
-- [ ] T081 Add metrics for latency/queue depth/denials in `control-plane/internal/orchestration/job_service.go` and `data-plane/internal/execution/runner.go`
-- [ ] T082 [P] Flesh out k6 scenarios in `control-plane/tests/integration/k6/jobs.js` and `control-plane/tests/integration/k6/sessions.js`
-- [ ] T083 Update validation steps in `specs/001-sandboxed-code-execution/quickstart.md`
+- [X] T080 [P] Add OpenTelemetry init and propagation in `control-plane/cmd/control-plane/main.go` and `data-plane/cmd/sandbox-runner/main.go`
+- [X] T081 Add metrics for latency/queue depth/denials in `control-plane/internal/orchestration/job_service.go` and `data-plane/internal/execution/runner.go`
+- [X] T082 [P] Flesh out k6 scenarios in `control-plane/tests/integration/k6/jobs.js` and `control-plane/tests/integration/k6/sessions.js`
+- [X] T083 Update validation steps in `specs/001-sandboxed-code-execution/quickstart.md`
 
 ---
+
+## Deferred Follow-ups
+
+**Purpose**: Items identified for later hardening.
+
+- [ ] T084 Implement artifact persistence beyond no-op validation in `control-plane/internal/storage/object/artifact_store.go`
+- [ ] T085 Wire audit store to persistent backing (Postgres/SQLite) in `control-plane/cmd/control-plane/main.go` and `control-plane/internal/audit/store.go`
 
 ## Dependencies & Execution Order
 
