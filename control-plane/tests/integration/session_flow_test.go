@@ -102,6 +102,13 @@ func TestSessionFlowIntegration(t *testing.T) {
 	if stepRec.Code != http.StatusAccepted {
 		t.Fatalf("expected %d, got %d", http.StatusAccepted, stepRec.Code)
 	}
+	var stepResp map[string]string
+	if err := json.NewDecoder(stepRec.Body).Decode(&stepResp); err != nil {
+		t.Fatalf("decode step response: %v", err)
+	}
+	if stepResp["stdout"] != "out" {
+		t.Fatalf("expected stdout to be propagated")
+	}
 	stepStore := handler.Stepper.Store.(*mockStepStore)
 	if len(stepStore.steps) != 1 {
 		t.Fatalf("expected step to be stored")
@@ -112,11 +119,11 @@ type mockStepRunner struct {
 	stepID string
 }
 
-func (m mockStepRunner) RunStep(ctx context.Context, sessionID string, command string) (string, error) {
+func (m mockStepRunner) RunStep(ctx context.Context, sessionID string, command string) (sessions.StepResult, error) {
 	_ = ctx
 	_ = sessionID
 	_ = command
-	return m.stepID, nil
+	return sessions.StepResult{ID: m.stepID, Stdout: "out", Stderr: ""}, nil
 }
 
 type mockStepStore struct {

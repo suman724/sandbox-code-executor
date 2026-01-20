@@ -248,6 +248,12 @@ description: "Task list template for feature implementation"
 - [X] T093 Add session step persistence and state tracking for running runtime IDs in `control-plane/internal/sessions/session.go` and `control-plane/internal/storage/postgres/job_store.go` (or new session store file)
 - [X] T094 Add integration tests for session step persistence (local) in `control-plane/tests/integration/session_flow_test.go` and `data-plane/tests/integration/session_runner_test.go`
 - [X] T095 Decide and implement persistence backend for session registry (in-memory for local, persistent for prod) in `data-plane/internal/runtime/session_registry.go` and configuration wiring in `data-plane/internal/config/config.go`
+- [ ] T096 Define shared session registry and routing strategy for multi-replica data-plane (e.g., DB/Redis-backed registry + sticky routing) in `specs/001-sandboxed-code-execution/tasks.md`
+- [X] T097 Extend session step API contract to return stdout/stderr (add schema) in `specs/001-sandboxed-code-execution/contracts/data-plane-openapi.yaml` and `data-plane/internal/runtime/openapi.yaml`
+- [X] T098 Capture session step stdout/stderr in local runtime and return in response in `data-plane/internal/runtime/session_local.go` and `data-plane/internal/runtime/handlers.go`
+- [X] T099 Capture session step stdout/stderr from k8s exec and return in response in `data-plane/internal/runtime/session_k8s.go` and `data-plane/internal/runtime/handlers.go`
+- [X] T100 Propagate session step output through control-plane client and API response in `control-plane/pkg/client/data_plane_client.go`, `control-plane/internal/sessions/session_service.go`, and `control-plane/internal/api/handlers/sessions.go`
+- [X] T101 Add tests for session step output propagation in `data-plane/tests/integration/session_runner_test.go` and `control-plane/tests/integration/session_flow_test.go`
 
 ## Dependencies & Execution Order
 

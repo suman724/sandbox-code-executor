@@ -94,11 +94,11 @@ type mcpStepRunner struct {
 	stepID string
 }
 
-func (m mcpStepRunner) RunStep(ctx context.Context, sessionID string, command string) (string, error) {
+func (m mcpStepRunner) RunStep(ctx context.Context, sessionID string, command string) (sessions.StepResult, error) {
 	_ = ctx
 	_ = sessionID
 	_ = command
-	return m.stepID, nil
+	return sessions.StepResult{ID: m.stepID}, nil
 }
 
 type mcpWorkflowStore struct{}

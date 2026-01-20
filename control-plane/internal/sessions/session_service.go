@@ -19,7 +19,7 @@ type Service struct {
 }
 
 type StepRunner interface {
-	RunStep(ctx context.Context, sessionID string, command string) (string, error)
+	RunStep(ctx context.Context, sessionID string, command string) (StepResult, error)
 }
 
 type StepStore interface {
@@ -31,6 +31,12 @@ type StepService struct {
 	Runner StepRunner
 	Store  StepStore
 	Logger audit.Logger
+}
+
+type StepResult struct {
+	ID     string
+	Stdout string
+	Stderr string
 }
 
 func (s Service) CreateSession(ctx context.Context, session Session) (string, error) {
@@ -83,23 +89,23 @@ func sessionExpires(session Session, now time.Time) time.Time {
 	return now.Add(ttl)
 }
 
-func (s StepService) Run(ctx context.Context, sessionID string, command string) (string, error) {
+func (s StepService) Run(ctx context.Context, sessionID string, command string) (StepResult, error) {
 	if sessionID == "" {
-		return "", errors.New("missing session id")
+		return StepResult{}, errors.New("missing session id")
 	}
 	if command == "" {
-		return "", errors.New("missing command")
+		return StepResult{}, errors.New("missing command")
 	}
 	if s.Runner == nil {
-		return "", errors.New("missing runner")
+		return StepResult{}, errors.New("missing runner")
 	}
-	stepID, err := s.Runner.RunStep(ctx, sessionID, command)
+	result, err := s.Runner.RunStep(ctx, sessionID, command)
 	if err != nil {
-		return "", err
+		return StepResult{}, err
 	}
 	if s.Store != nil {
 		_ = s.Store.AppendStep(ctx, SessionStep{
-			ID:        stepID,
+			ID:        result.ID,
 			SessionID: sessionID,
 			Command:   command,
 			Status:    "accepted",
@@ -108,11 +114,11 @@ func (s StepService) Run(ctx context.Context, sessionID string, command string) 
 	}
 	if s.Logger != nil {
 		_ = s.Logger.Log(ctx, audit.Event{
-			Action:   "session_step_accepted",
-			Outcome:  "ok",
-			Time:     time.Now(),
-			Detail:   stepID,
+			Action:  "session_step_accepted",
+			Outcome: "ok",
+			Time:    time.Now(),
+			Detail:  result.ID,
 		})
 	}
-	return stepID, nil
+	return result, nil
 }

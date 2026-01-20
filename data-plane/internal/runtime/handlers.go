@@ -65,6 +65,12 @@ type sessionStepRequest struct {
 	Command string `json:"command"`
 }
 
+type sessionStepResponse struct {
+	Status string `json:"status"`
+	Stdout string `json:"stdout"`
+	Stderr string `json:"stderr"`
+}
+
 func (h SessionHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if r.Method == http.MethodPost && strings.HasSuffix(r.URL.Path, "/terminate") {
 		h.handleTerminate(w, r)
@@ -136,12 +142,19 @@ func (h SessionHandler) handleStep(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusNotFound)
 		return
 	}
-	if err := h.Runtime.RunStep(r.Context(), runtimeID, req.Command); err != nil {
+	output, err := h.Runtime.RunStep(r.Context(), runtimeID, req.Command)
+	if err != nil {
 		log.Printf("sessions: step error: %v", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusAccepted)
+	_ = json.NewEncoder(w).Encode(sessionStepResponse{
+		Status: "accepted",
+		Stdout: output.Stdout,
+		Stderr: output.Stderr,
+	})
 }
 
 func (h SessionHandler) handleTerminate(w http.ResponseWriter, r *http.Request) {

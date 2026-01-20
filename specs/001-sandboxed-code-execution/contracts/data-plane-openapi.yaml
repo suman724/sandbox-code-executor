@@ -84,6 +84,10 @@ paths:
       responses:
         "202":
           description: Step accepted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SessionStepResponse"
   /sessions/{sessionId}/terminate:
     post:
       summary: Terminate a session runtime
@@ -153,4 +157,13 @@ components:
       required: [command]
       properties:
         command:
+          type: string
+    SessionStepResponse:
+      type: object
+      properties:
+        status:
+          type: string
+        stdout:
+          type: string
+        stderr:
           type: string

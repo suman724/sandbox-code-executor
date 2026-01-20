@@ -39,6 +39,12 @@ type SessionStepRequest struct {
 	Command string `json:"command"`
 }
 
+type SessionStepResponse struct {
+	Status string `json:"status"`
+	Stdout string `json:"stdout"`
+	Stderr string `json:"stderr"`
+}
+
 type DataPlaneClient struct {
 	BaseURL   string
 	AuthToken string
@@ -117,15 +123,15 @@ func (c DataPlaneClient) StartSession(ctx context.Context, req SessionCreateRequ
 	return decoded, nil
 }
 
-func (c DataPlaneClient) RunSessionStep(ctx context.Context, sessionID string, command string) error {
+func (c DataPlaneClient) RunSessionStep(ctx context.Context, sessionID string, command string) (SessionStepResponse, error) {
 	if c.BaseURL == "" {
-		return errors.New("missing base url")
+		return SessionStepResponse{}, errors.New("missing base url")
 	}
 	if sessionID == "" {
-		return errors.New("missing session id")
+		return SessionStepResponse{}, errors.New("missing session id")
 	}
 	if command == "" {
-		return errors.New("missing command")
+		return SessionStepResponse{}, errors.New("missing command")
 	}
 	client := c.Client
 	if client == nil {
@@ -133,12 +139,12 @@ func (c DataPlaneClient) RunSessionStep(ctx context.Context, sessionID string, c
 	}
 	body, err := json.Marshal(SessionStepRequest{Command: command})
 	if err != nil {
-		return err
+		return SessionStepResponse{}, err
 	}
 	url := strings.TrimRight(c.BaseURL, "/") + "/sessions/" + sessionID + "/steps"
 	httpReq, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewReader(body))
 	if err != nil {
-		return err
+		return SessionStepResponse{}, err
 	}
 	httpReq.Header.Set("Content-Type", "application/json")
 	if c.AuthToken != "" {
@@ -146,11 +152,15 @@ func (c DataPlaneClient) RunSessionStep(ctx context.Context, sessionID string, c
 	}
 	resp, err := client.Do(httpReq)
 	if err != nil {
-		return err
+		return SessionStepResponse{}, err
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusAccepted {
-		return fmt.Errorf("unexpected status: %s", resp.Status)
+		return SessionStepResponse{}, fmt.Errorf("unexpected status: %s", resp.Status)
 	}
-	return nil
+	var decoded SessionStepResponse
+	if err := json.NewDecoder(resp.Body).Decode(&decoded); err != nil {
+		return SessionStepResponse{}, err
+	}
+	return decoded, nil
 }

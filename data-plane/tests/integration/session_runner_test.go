@@ -51,7 +51,7 @@ func TestSessionRunnerLocal(t *testing.T) {
 	}
 	_ = resp.Body.Close()
 
-	stepBody, err := json.Marshal(map[string]string{"command": "echo hello"})
+	stepBody, err := json.Marshal(map[string]string{"command": "echo out; echo err 1>&2"})
 	if err != nil {
 		t.Fatalf("marshal step payload: %v", err)
 	}
@@ -61,6 +61,19 @@ func TestSessionRunnerLocal(t *testing.T) {
 	}
 	if resp.StatusCode != http.StatusAccepted {
 		t.Fatalf("expected %d, got %d", http.StatusAccepted, resp.StatusCode)
+	}
+	var stepResp map[string]string
+	if err := json.NewDecoder(resp.Body).Decode(&stepResp); err != nil {
+		t.Fatalf("decode step response: %v", err)
+	}
+	if stepResp["stdout"] == "" {
+		t.Fatalf("expected stdout")
+	}
+	if stepResp["stderr"] == "" {
+		t.Fatalf("expected stderr")
+	}
+	if stepResp["status"] != "accepted" {
+		t.Fatalf("expected accepted status")
 	}
 	_ = resp.Body.Close()
 

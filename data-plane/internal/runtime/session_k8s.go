@@ -67,18 +67,18 @@ func (r KubernetesSessionRuntime) StartSession(ctx context.Context, sessionID st
 	return podName, nil
 }
 
-func (r KubernetesSessionRuntime) RunStep(ctx context.Context, runtimeID string, command string) error {
+func (r KubernetesSessionRuntime) RunStep(ctx context.Context, runtimeID string, command string) (StepOutput, error) {
 	if r.Client == nil {
-		return errors.New("missing kubernetes client")
+		return StepOutput{}, errors.New("missing kubernetes client")
 	}
 	if r.Config == nil {
-		return errors.New("missing kubernetes config")
+		return StepOutput{}, errors.New("missing kubernetes config")
 	}
 	if runtimeID == "" {
-		return errors.New("missing runtime id")
+		return StepOutput{}, errors.New("missing runtime id")
 	}
 	if command == "" {
-		return errors.New("missing command")
+		return StepOutput{}, errors.New("missing command")
 	}
 	namespace := r.Namespace
 	if namespace == "" {
@@ -97,7 +97,7 @@ func (r KubernetesSessionRuntime) RunStep(ctx context.Context, runtimeID string,
 		}, scheme.ParameterCodec)
 	executor, err := remotecommand.NewSPDYExecutor(r.Config, "POST", req.URL())
 	if err != nil {
-		return err
+		return StepOutput{}, err
 	}
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer
@@ -107,11 +107,11 @@ func (r KubernetesSessionRuntime) RunStep(ctx context.Context, runtimeID string,
 	}); err != nil {
 		msg := strings.TrimSpace(stderr.String())
 		if msg != "" {
-			return fmt.Errorf("kubernetes exec error: %w: %s", err, msg)
+			return StepOutput{}, fmt.Errorf("kubernetes exec error: %w: %s", err, msg)
 		}
-		return fmt.Errorf("kubernetes exec error: %w", err)
+		return StepOutput{}, fmt.Errorf("kubernetes exec error: %w", err)
 	}
-	return nil
+	return StepOutput{Stdout: stdout.String(), Stderr: stderr.String()}, nil
 }
 
 func (r KubernetesSessionRuntime) TerminateSession(ctx context.Context, runtimeID string) error {

@@ -239,6 +239,10 @@ components:
           type: string
         status:
           type: string
+        stdout:
+          type: string
+        stderr:
+          type: string
     ArtifactUpload:
       type: object
       required: [tenantId, name, sizeBytes]

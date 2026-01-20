@@ -32,6 +32,13 @@ type stepRequest struct {
 	Command string `json:"command"`
 }
 
+type stepResponse struct {
+	ID     string `json:"id"`
+	Status string `json:"status"`
+	Stdout string `json:"stdout"`
+	Stderr string `json:"stderr"`
+}
+
 func (h SessionHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if r.Method == http.MethodPost && chi.URLParam(r, "sessionId") != "" {
 		h.handleStep(w, r)
@@ -84,12 +91,17 @@ func (h SessionHandler) handleStep(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusNotImplemented)
 		return
 	}
-	stepID, err := h.Stepper.Run(r.Context(), chi.URLParam(r, "sessionId"), req.Command)
+	result, err := h.Stepper.Run(r.Context(), chi.URLParam(r, "sessionId"), req.Command)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusAccepted)
-	_ = json.NewEncoder(w).Encode(map[string]string{"id": stepID, "status": "accepted"})
+	_ = json.NewEncoder(w).Encode(stepResponse{
+		ID:     result.ID,
+		Status: "accepted",
+		Stdout: result.Stdout,
+		Stderr: result.Stderr,
+	})
 }
