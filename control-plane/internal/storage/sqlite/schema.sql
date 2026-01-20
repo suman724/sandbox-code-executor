@@ -5,6 +5,14 @@ create table if not exists jobs (
 
 create table if not exists sessions (
   id text primary key,
+  status text not null,
+  runtime_id text
+);
+
+create table if not exists session_steps (
+  id text primary key,
+  session_id text not null,
+  command text not null,
   status text not null
 );
 

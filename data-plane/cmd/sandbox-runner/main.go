@@ -2,12 +2,14 @@ package main
 
 import (
 	"context"
+	"errors"
 	"log"
 	"net/http"
 	"os"
 	"time"
 
 	"data-plane/internal/config"
+	"data-plane/internal/execution"
 	"data-plane/internal/runtime"
 
 	"github.com/go-chi/chi/v5"
@@ -20,6 +22,9 @@ import (
 	"go.opentelemetry.io/otel/sdk/resource"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 	semconv "go.opentelemetry.io/otel/semconv/v1.24.0"
+	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
+	"k8s.io/client-go/tools/clientcmd"
 )
 
 func main() {
@@ -47,7 +52,28 @@ func main() {
 		}
 	}()
 
-	apiHandler := runtime.Router()
+	runHandler := runtime.RunHandler{
+		Runner: execution.Runner{
+			Registry: runtime.DefaultRegistry(),
+			Deps:     runtime.DependencyPolicy{},
+		},
+	}
+	sessionRegistry, err := buildSessionRegistry(cfg)
+	if err != nil {
+		log.Fatalf("session registry error: %v", err)
+	}
+	sessionRuntime, err := buildSessionRuntime(cfg)
+	if err != nil {
+		log.Fatalf("session runtime error: %v", err)
+	}
+	sessionHandler := runtime.SessionHandler{
+		Runtime:  sessionRuntime,
+		Registry: sessionRegistry,
+	}
+	apiHandler := runtime.RouterWithDependencies(runtime.Dependencies{
+		RunHandler:     runHandler,
+		SessionHandler: sessionHandler,
+	})
 	router := chi.NewRouter()
 	if telemetry.MetricsHandler != nil {
 		router.Handle("/metrics", telemetry.MetricsHandler)
@@ -112,4 +138,54 @@ func initTelemetry(ctx context.Context, serviceName string, endpoint string) (te
 		},
 		MetricsHandler: promhttp.Handler(),
 	}, nil
+}
+
+func buildSessionRuntime(cfg config.Config) (runtime.SessionRuntime, error) {
+	switch cfg.SessionRuntime {
+	case "k8s":
+		restConfig, clientset, err := buildKubeClient()
+		if err != nil {
+			return nil, err
+		}
+		return runtime.KubernetesSessionRuntime{
+			Client:       clientset,
+			Config:       restConfig,
+			Namespace:    cfg.RuntimeNamespace,
+			RuntimeClass: cfg.RuntimeClass,
+			Image:        cfg.SessionImage,
+		}, nil
+	default:
+		return runtime.NewLocalSessionRuntime(), nil
+	}
+}
+
+func buildSessionRegistry(cfg config.Config) (runtime.SessionRegistry, error) {
+	switch cfg.SessionRegistry {
+	case "file":
+		return runtime.NewFileSessionRegistry(cfg.SessionRegistryPath)
+	default:
+		return runtime.NewInMemorySessionRegistry(), nil
+	}
+}
+
+func buildKubeClient() (*rest.Config, kubernetes.Interface, error) {
+	if cfg, err := rest.InClusterConfig(); err == nil {
+		clientset, err := kubernetes.NewForConfig(cfg)
+		if err != nil {
+			return nil, nil, err
+		}
+		return cfg, clientset, nil
+	}
+	if kubeconfig := os.Getenv("KUBECONFIG"); kubeconfig != "" {
+		cfg, err := clientcmd.BuildConfigFromFlags("", kubeconfig)
+		if err != nil {
+			return nil, nil, err
+		}
+		clientset, err := kubernetes.NewForConfig(cfg)
+		if err != nil {
+			return nil, nil, err
+		}
+		return cfg, clientset, nil
+	}
+	return nil, nil, errors.New("missing kubernetes config")
 }

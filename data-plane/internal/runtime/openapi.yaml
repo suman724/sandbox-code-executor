@@ -50,6 +50,52 @@ paths:
       responses:
         "202":
           description: Termination accepted
+  /sessions:
+    post:
+      summary: Start a session runtime
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SessionCreate"
+      responses:
+        "202":
+          description: Session accepted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Session"
+  /sessions/{sessionId}/steps:
+    post:
+      summary: Execute a session step
+      parameters:
+        - name: sessionId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SessionStepCreate"
+      responses:
+        "202":
+          description: Step accepted
+  /sessions/{sessionId}/terminate:
+    post:
+      summary: Terminate a session runtime
+      parameters:
+        - name: sessionId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "202":
+          description: Termination accepted
 components:
   schemas:
     RunCreate:
@@ -83,3 +129,28 @@ components:
           type: array
           items:
             type: string
+    SessionCreate:
+      type: object
+      required: [sessionId, policyId, workspaceRef]
+      properties:
+        sessionId:
+          type: string
+        policyId:
+          type: string
+        workspaceRef:
+          type: string
+    Session:
+      type: object
+      properties:
+        id:
+          type: string
+        runtimeId:
+          type: string
+        status:
+          type: string
+    SessionStepCreate:
+      type: object
+      required: [command]
+      properties:
+        command:
+          type: string

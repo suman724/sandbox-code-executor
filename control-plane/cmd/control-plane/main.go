@@ -84,11 +84,17 @@ func main() {
 		Enforcer: enforcer,
 		Logger:   audit.StdoutLogger{},
 	}
+	stepper := sessions.StepService{
+		Runner: sessions.DataPlaneStepRunner{Client: dataPlaneClient},
+		Store:  sessions.StorageStepStore{Store: stores.SessionStepStore},
+		Logger: audit.StdoutLogger{},
+	}
 
 	deps := api.Dependencies{
 		JobService:     &jobService,
 		JobStore:       stores.JobStore,
 		SessionService: &sessionService,
+		Stepper:        &stepper,
 		PolicyStore:    policy.NewInMemoryStore(),
 		AuditStore:     &audit.InMemoryStore{},
 	}
@@ -96,7 +102,7 @@ func main() {
 	if cfg.MCPAddr != "" {
 		mcpDeps := mcp.Dependencies{
 			JobsHandler:      handlers.JobHandler{Service: jobService, Store: stores.JobStore},
-			SessionsHandler:  handlers.SessionHandler{Service: sessionService},
+			SessionsHandler:  handlers.SessionHandler{Service: sessionService, Stepper: stepper},
 			WorkflowsHandler: handlers.WorkflowHandler{},
 			ArtifactStore:    object.ArtifactStore{BaseURL: cfg.ArtifactBucket},
 		}

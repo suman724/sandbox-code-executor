@@ -53,7 +53,7 @@ func (s SessionStore) Create(ctx context.Context, session storage.Session) error
 	if s.Pool == nil {
 		return errors.New("nil pool")
 	}
-	_, err := s.Pool.Exec(ctx, `insert into sessions (id, status) values ($1, $2)`, session.ID, session.Status)
+	_, err := s.Pool.Exec(ctx, `insert into sessions (id, status, runtime_id) values ($1, $2, $3)`, session.ID, session.Status, session.RuntimeID)
 	return err
 }
 
@@ -62,7 +62,7 @@ func (s SessionStore) Get(ctx context.Context, id string) (storage.Session, erro
 		return storage.Session{}, errors.New("nil pool")
 	}
 	var session storage.Session
-	err := s.Pool.QueryRow(ctx, `select id, status from sessions where id = $1`, id).Scan(&session.ID, &session.Status)
+	err := s.Pool.QueryRow(ctx, `select id, status, runtime_id from sessions where id = $1`, id).Scan(&session.ID, &session.Status, &session.RuntimeID)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return storage.Session{}, errors.New("session not found")

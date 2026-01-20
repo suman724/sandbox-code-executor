@@ -58,8 +58,9 @@ func RouterWithDependencies(deps Dependencies) http.Handler {
 	if deps.Stepper != nil {
 		stepper = *deps.Stepper
 	}
-	r.Post("/sessions", handlers.SessionHandler{Service: sessionService, Stepper: stepper}.ServeHTTP)
-	r.Post("/sessions/{sessionId}/steps", notImplemented)
+	sessionHandler := handlers.SessionHandler{Service: sessionService, Stepper: stepper}
+	r.Post("/sessions", sessionHandler.ServeHTTP)
+	r.Post("/sessions/{sessionId}/steps", sessionHandler.ServeHTTP)
 
 	r.Post("/artifacts/upload", notImplemented)
 	r.Get("/artifacts/{artifactId}/download", notImplemented)

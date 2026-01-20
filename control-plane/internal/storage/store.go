@@ -10,6 +10,7 @@ type Job struct {
 type Session struct {
 	ID     string
 	Status string
+	RuntimeID string
 }
 
 type Policy struct {

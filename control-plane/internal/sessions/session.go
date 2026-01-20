@@ -18,6 +18,7 @@ type Session struct {
 	TTL          time.Duration
 	ExpiresAt    time.Time
 	Status       Status
+	RuntimeID    string
 	LastActivity time.Time
 	Steps        []SessionStep
 }

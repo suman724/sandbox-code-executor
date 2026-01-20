@@ -50,7 +50,7 @@ func TestSessionsContractCreate(t *testing.T) {
 	dataPlane := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusAccepted)
-		_, _ = w.Write([]byte(`{"run_id":"run-1"}`))
+		_, _ = w.Write([]byte(`{"id":"session-1","runtimeId":"runtime-1","status":"running"}`))
 	}))
 	t.Cleanup(dataPlane.Close)
 

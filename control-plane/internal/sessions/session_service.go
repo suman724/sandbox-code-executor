@@ -48,18 +48,16 @@ func (s Service) CreateSession(ctx context.Context, session Session) (string, er
 	if session.ExpiresAt.IsZero() {
 		session.ExpiresAt = sessionExpires(session, time.Now())
 	}
-	if err := s.Store.Create(ctx, storage.Session{ID: session.ID, Status: string(session.Status)}); err != nil {
-		return "", err
-	}
-	resp, err := s.Client.StartRun(ctx, client.RunRequest{
-		JobID:        session.ID,
+	resp, err := s.Client.StartSession(ctx, client.SessionCreateRequest{
+		SessionID:    session.ID,
 		PolicyID:     session.PolicyID,
-		Language:     "session",
-		Code:         "",
 		WorkspaceRef: session.ID,
 	})
 	if err != nil {
-		_ = s.Store.UpdateStatus(ctx, session.ID, string(StatusTerminated))
+		return "", err
+	}
+	session.RuntimeID = resp.RuntimeID
+	if err := s.Store.Create(ctx, storage.Session{ID: session.ID, Status: string(session.Status), RuntimeID: session.RuntimeID}); err != nil {
 		return "", err
 	}
 	if err := s.Store.UpdateStatus(ctx, session.ID, string(StatusActive)); err != nil {
@@ -74,7 +72,7 @@ func (s Service) CreateSession(ctx context.Context, session Session) (string, er
 			Detail:   session.ID,
 		})
 	}
-	return resp.RunID, nil
+	return resp.RuntimeID, nil
 }
 
 func sessionExpires(session Session, now time.Time) time.Time {
