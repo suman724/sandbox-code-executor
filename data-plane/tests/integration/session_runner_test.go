@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"data-plane/internal/execution"
@@ -37,6 +38,7 @@ func TestSessionRunnerLocal(t *testing.T) {
 		"sessionId":    "session-1",
 		"policyId":     "policy-1",
 		"workspaceRef": "session-1",
+		"runtime":      "python",
 	}
 	body, err := json.Marshal(payload)
 	if err != nil {
@@ -51,7 +53,7 @@ func TestSessionRunnerLocal(t *testing.T) {
 	}
 	_ = resp.Body.Close()
 
-	stepBody, err := json.Marshal(map[string]string{"command": "echo out; echo err 1>&2"})
+	stepBody, err := json.Marshal(map[string]string{"command": "import sys\nprint('out')\nprint('err', file=sys.stderr)"})
 	if err != nil {
 		t.Fatalf("marshal step payload: %v", err)
 	}
@@ -76,6 +78,39 @@ func TestSessionRunnerLocal(t *testing.T) {
 		t.Fatalf("expected accepted status")
 	}
 	_ = resp.Body.Close()
+
+	stepBody, err = json.Marshal(map[string]string{"command": "x = 41\nprint('set')"})
+	if err != nil {
+		t.Fatalf("marshal step payload: %v", err)
+	}
+	resp, err = http.Post(server.URL+"/sessions/session-1/steps", "application/json", bytes.NewReader(stepBody))
+	if err != nil {
+		t.Fatalf("step session: %v", err)
+	}
+	if resp.StatusCode != http.StatusAccepted {
+		t.Fatalf("expected %d, got %d", http.StatusAccepted, resp.StatusCode)
+	}
+	resp.Body.Close()
+
+	stepBody, err = json.Marshal(map[string]string{"command": "print(x + 1)"})
+	if err != nil {
+		t.Fatalf("marshal step payload: %v", err)
+	}
+	resp, err = http.Post(server.URL+"/sessions/session-1/steps", "application/json", bytes.NewReader(stepBody))
+	if err != nil {
+		t.Fatalf("step session: %v", err)
+	}
+	if resp.StatusCode != http.StatusAccepted {
+		t.Fatalf("expected %d, got %d", http.StatusAccepted, resp.StatusCode)
+	}
+	stepResp = map[string]string{}
+	if err := json.NewDecoder(resp.Body).Decode(&stepResp); err != nil {
+		t.Fatalf("decode step response: %v", err)
+	}
+	if !strings.Contains(stepResp["stdout"], "42") {
+		t.Fatalf("expected stdout to contain 42, got %q", stepResp["stdout"])
+	}
+	resp.Body.Close()
 
 	resp, err = http.Post(server.URL+"/sessions/session-1/terminate", "application/json", bytes.NewReader([]byte("{}")))
 	if err != nil {

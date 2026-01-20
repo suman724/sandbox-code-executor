@@ -2,8 +2,6 @@ openapi: 3.0.3
 info:
   title: Sandboxed Code Execution Control Plane API
   version: 0.1.0
-servers:
-  - url: https://sandbox.internal/api
 paths:
   /jobs:
     post:
