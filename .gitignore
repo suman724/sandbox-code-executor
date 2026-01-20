@@ -11,6 +11,7 @@ vendor/
 # OS/Editor
 .DS_Store
 Thumbs.db
+control-plane/control-plane.db
 *.swp
 *.tmp
 .vscode/

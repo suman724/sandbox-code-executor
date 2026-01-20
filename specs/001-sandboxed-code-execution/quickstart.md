@@ -34,6 +34,30 @@ the control plane, for example:
 export MCP_ADDR=':8090'
 ```
 
+### Session runtime configuration
+
+Select the runtime backend and registry mode for sessions:
+
+```bash
+export SESSION_RUNTIME_BACKEND=local
+export SESSION_REGISTRY_BACKEND=memory
+```
+
+For Kubernetes sessions, set the backend and optionally provide an image
+fallback (used when runtime is not `python` or `node`):
+
+```bash
+export SESSION_RUNTIME_BACKEND=k8s
+export SESSION_RUNTIME_IMAGE=busybox:1.36
+```
+
+To persist the session registry across restarts, use the file backend:
+
+```bash
+export SESSION_REGISTRY_BACKEND=file
+export SESSION_REGISTRY_PATH=/tmp/session-registry.json
+```
+
 ## Container Builds
 
 - Build control plane: `docker build -f control-plane/Dockerfile -t control-plane:dev .`
@@ -54,6 +78,9 @@ export MCP_ADDR=':8090'
    sandbox for the session TTL, then run steps inside it.
 4. Review audit events for all executions (control plane).
 
+Session requests can specify a runtime (for example `python` or `node`), and
+step responses include `stdout` and `stderr`.
+
 ## Validation
 
 - Run unit tests: `make test-control-plane` and `make test-data-plane`.
@@ -65,6 +92,8 @@ export MCP_ADDR=':8090'
 - Validate MCP health: `curl http://localhost:8090/healthz`.
 - Validate Prometheus metrics (control plane): `curl http://localhost:8080/metrics`.
 - Validate Prometheus metrics (data plane): `curl http://localhost:8081/metrics`.
+- Validate API docs (control plane): `open http://localhost:8080/docs`.
+- Validate API docs (data plane): `open http://localhost:8081/docs`.
 
 ## Deployment Notes
 

@@ -51,7 +51,7 @@ func TestSessionFlowIntegration(t *testing.T) {
 	dataPlane := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusAccepted)
-		_, _ = w.Write([]byte(`{"run_id":"run-123"}`))
+		_, _ = w.Write([]byte(`{"id":"session-1","runtimeId":"runtime-123","status":"running"}`))
 	}))
 	t.Cleanup(dataPlane.Close)
 
@@ -67,6 +67,7 @@ func TestSessionFlowIntegration(t *testing.T) {
 		Service: service,
 		Stepper: sessions.StepService{
 			Runner: mockStepRunner{stepID: "step-1"},
+			Store:  &mockStepStore{},
 		},
 	}
 
@@ -101,15 +102,42 @@ func TestSessionFlowIntegration(t *testing.T) {
 	if stepRec.Code != http.StatusAccepted {
 		t.Fatalf("expected %d, got %d", http.StatusAccepted, stepRec.Code)
 	}
+	var stepResp map[string]string
+	if err := json.NewDecoder(stepRec.Body).Decode(&stepResp); err != nil {
+		t.Fatalf("decode step response: %v", err)
+	}
+	if stepResp["stdout"] != "out" {
+		t.Fatalf("expected stdout to be propagated")
+	}
+	stepStore := handler.Stepper.Store.(*mockStepStore)
+	if len(stepStore.steps) != 1 {
+		t.Fatalf("expected step to be stored")
+	}
 }
 
 type mockStepRunner struct {
 	stepID string
 }
 
-func (m mockStepRunner) RunStep(ctx context.Context, sessionID string, command string) (string, error) {
+func (m mockStepRunner) RunStep(ctx context.Context, sessionID string, command string) (sessions.StepResult, error) {
 	_ = ctx
 	_ = sessionID
 	_ = command
-	return m.stepID, nil
+	return sessions.StepResult{ID: m.stepID, Stdout: "out", Stderr: ""}, nil
+}
+
+type mockStepStore struct {
+	steps []sessions.SessionStep
+}
+
+func (m *mockStepStore) AppendStep(ctx context.Context, step sessions.SessionStep) error {
+	_ = ctx
+	m.steps = append(m.steps, step)
+	return nil
+}
+
+func (m *mockStepStore) ListSteps(ctx context.Context, sessionID string) ([]sessions.SessionStep, error) {
+	_ = ctx
+	_ = sessionID
+	return m.steps, nil
 }

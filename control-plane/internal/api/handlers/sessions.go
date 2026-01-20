@@ -21,6 +21,7 @@ type sessionRequest struct {
 	AgentID    string `json:"agentId"`
 	PolicyID   string `json:"policyId"`
 	TTLSeconds int    `json:"ttlSeconds"`
+	Runtime    string `json:"runtime"`
 }
 
 type sessionResponse struct {
@@ -30,6 +31,13 @@ type sessionResponse struct {
 
 type stepRequest struct {
 	Command string `json:"command"`
+}
+
+type stepResponse struct {
+	ID     string `json:"id"`
+	Status string `json:"status"`
+	Stdout string `json:"stdout"`
+	Stderr string `json:"stderr"`
 }
 
 func (h SessionHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -52,6 +60,7 @@ func (h SessionHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		TenantID: req.TenantID,
 		AgentID:  req.AgentID,
 		PolicyID: req.PolicyID,
+		Runtime:  req.Runtime,
 		TTL:      time.Duration(req.TTLSeconds) * time.Second,
 		Status:   sessions.StatusActive,
 	}
@@ -84,12 +93,17 @@ func (h SessionHandler) handleStep(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusNotImplemented)
 		return
 	}
-	stepID, err := h.Stepper.Run(r.Context(), chi.URLParam(r, "sessionId"), req.Command)
+	result, err := h.Stepper.Run(r.Context(), chi.URLParam(r, "sessionId"), req.Command)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusAccepted)
-	_ = json.NewEncoder(w).Encode(map[string]string{"id": stepID, "status": "accepted"})
+	_ = json.NewEncoder(w).Encode(stepResponse{
+		ID:     result.ID,
+		Status: "accepted",
+		Stdout: result.Stdout,
+		Stderr: result.Stderr,
+	})
 }

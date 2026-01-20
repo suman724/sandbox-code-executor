@@ -138,6 +138,9 @@ Common environment variables:
   - `AUTHZ_BYPASS` (non-production only)
 - Data plane:
   - `ENV`, `RUNTIME_NAMESPACE`, `RUNTIME_CLASS`
+  - `SESSION_RUNTIME_BACKEND` (`local` or `k8s`)
+  - `SESSION_REGISTRY_BACKEND` (`memory` or `file`) and `SESSION_REGISTRY_PATH` (file backend)
+  - `SESSION_RUNTIME_IMAGE` (fallback image for session pods)
   - `AUTH_JWT_SECRET`, `AUTH_ISSUER`, `AUTH_AUDIENCE`
   - `AUTHZ_BYPASS` (non-production only)
 
@@ -156,6 +159,10 @@ MCP endpoints:
 - `POST /tools/sessions`, `POST /tools/sessions/{sessionId}/steps`
 - `POST /tools/workflows`
 - `POST /tools/artifacts/upload`, `GET /tools/artifacts/{artifactId}/download`
+
+Session notes:
+- `POST /sessions` accepts an optional `runtime` (for example `python` or `node`).
+- Step responses include `stdout` and `stderr` output payloads.
 
 ## Additional documentation
 

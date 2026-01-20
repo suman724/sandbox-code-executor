@@ -50,7 +50,7 @@ func TestSessionsContractCreate(t *testing.T) {
 	dataPlane := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusAccepted)
-		_, _ = w.Write([]byte(`{"run_id":"run-1"}`))
+		_, _ = w.Write([]byte(`{"id":"session-1","runtimeId":"runtime-1","status":"running"}`))
 	}))
 	t.Cleanup(dataPlane.Close)
 
@@ -98,15 +98,22 @@ func TestSessionsContractStep(t *testing.T) {
 	if rec.Code != http.StatusAccepted {
 		t.Fatalf("expected %d, got %d", http.StatusAccepted, rec.Code)
 	}
+	var stepResp map[string]string
+	if err := json.NewDecoder(rec.Body).Decode(&stepResp); err != nil {
+		t.Fatalf("decode step response: %v", err)
+	}
+	if stepResp["stdout"] != "ok" {
+		t.Fatalf("expected stdout to be propagated")
+	}
 }
 
 type mockStepRunner struct {
 	stepID string
 }
 
-func (m mockStepRunner) RunStep(ctx context.Context, sessionID string, command string) (string, error) {
+func (m mockStepRunner) RunStep(ctx context.Context, sessionID string, command string) (sessions.StepResult, error) {
 	_ = ctx
 	_ = sessionID
 	_ = command
-	return m.stepID, nil
+	return sessions.StepResult{ID: m.stepID, Stdout: "ok", Stderr: ""}, nil
 }

@@ -15,12 +15,13 @@ import (
 )
 
 type StoreSet struct {
-	JobStore     storage.JobStore
-	SessionStore storage.SessionStore
-	PolicyStore  storage.PolicyStore
-	AuditStore   storage.AuditStore
-	DB           *sql.DB
-	Close        func() error
+	JobStore         storage.JobStore
+	SessionStore     storage.SessionStore
+	SessionStepStore storage.SessionStepStore
+	PolicyStore      storage.PolicyStore
+	AuditStore       storage.AuditStore
+	DB               *sql.DB
+	Close            func() error
 }
 
 func NewStoreSet(ctx context.Context, driver string, dsn string) (StoreSet, error) {
@@ -34,10 +35,11 @@ func NewStoreSet(ctx context.Context, driver string, dsn string) (StoreSet, erro
 			return StoreSet{}, err
 		}
 		return StoreSet{
-			JobStore:     postgres.JobStore{Pool: pool},
-			SessionStore: postgres.SessionStore{Pool: pool},
-			PolicyStore:  postgres.PolicyStore{Pool: pool},
-			AuditStore:   postgres.AuditStore{Pool: pool},
+			JobStore:         postgres.JobStore{Pool: pool},
+			SessionStore:     postgres.SessionStore{Pool: pool},
+			SessionStepStore: postgres.SessionStepStore{Pool: pool},
+			PolicyStore:      postgres.PolicyStore{Pool: pool},
+			AuditStore:       postgres.AuditStore{Pool: pool},
 			Close: func() error {
 				pool.Close()
 				return nil
@@ -56,12 +58,13 @@ func NewStoreSet(ctx context.Context, driver string, dsn string) (StoreSet, erro
 			return StoreSet{}, err
 		}
 		return StoreSet{
-			JobStore:     sqlite.JobStore{DB: db},
-			SessionStore: sqlite.SessionStore{DB: db},
-			PolicyStore:  sqlite.PolicyStore{DB: db},
-			AuditStore:   sqlite.AuditStore{DB: db},
-			DB:           db,
-			Close:        db.Close,
+			JobStore:         sqlite.JobStore{DB: db},
+			SessionStore:     sqlite.SessionStore{DB: db},
+			SessionStepStore: sqlite.SessionStepStore{DB: db},
+			PolicyStore:      sqlite.PolicyStore{DB: db},
+			AuditStore:       sqlite.AuditStore{DB: db},
+			DB:               db,
+			Close:            db.Close,
 		}, nil
 	default:
 		return StoreSet{}, errors.New("unsupported database driver")

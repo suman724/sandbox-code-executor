@@ -5,6 +5,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 
+	"control-plane/internal/api/docs"
 	"control-plane/internal/api/handlers"
 	"control-plane/internal/api/middleware"
 	"control-plane/internal/audit"
@@ -57,8 +58,9 @@ func RouterWithDependencies(deps Dependencies) http.Handler {
 	if deps.Stepper != nil {
 		stepper = *deps.Stepper
 	}
-	r.Post("/sessions", handlers.SessionHandler{Service: sessionService, Stepper: stepper}.ServeHTTP)
-	r.Post("/sessions/{sessionId}/steps", notImplemented)
+	sessionHandler := handlers.SessionHandler{Service: sessionService, Stepper: stepper}
+	r.Post("/sessions", sessionHandler.ServeHTTP)
+	r.Post("/sessions/{sessionId}/steps", sessionHandler.ServeHTTP)
 
 	r.Post("/artifacts/upload", notImplemented)
 	r.Get("/artifacts/{artifactId}/download", notImplemented)
@@ -84,6 +86,8 @@ func RouterWithDependencies(deps Dependencies) http.Handler {
 	r.Get("/healthz", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 	})
+	r.Get("/openapi.yaml", docs.OpenAPIHandler())
+	r.Get("/docs", docs.SwaggerUIHandler())
 
 	return r
 }

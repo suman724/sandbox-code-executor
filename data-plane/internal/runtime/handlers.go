@@ -44,6 +44,143 @@ type RunStore interface {
 	UpdateStatus(ctx context.Context, id string, status string) error
 }
 
+type SessionHandler struct {
+	Runtime  SessionRuntime
+	Registry SessionRegistry
+}
+
+type sessionRequest struct {
+	SessionID    string `json:"sessionId"`
+	PolicyID     string `json:"policyId"`
+	WorkspaceRef string `json:"workspaceRef"`
+	Runtime      string `json:"runtime"`
+}
+
+type sessionResponse struct {
+	ID        string `json:"id"`
+	RuntimeID string `json:"runtimeId"`
+	Status    string `json:"status"`
+}
+
+type sessionStepRequest struct {
+	Command string `json:"command"`
+}
+
+type sessionStepResponse struct {
+	Status string `json:"status"`
+	Stdout string `json:"stdout"`
+	Stderr string `json:"stderr"`
+}
+
+func (h SessionHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	if r.Method == http.MethodPost && strings.HasSuffix(r.URL.Path, "/terminate") {
+		h.handleTerminate(w, r)
+		return
+	}
+	if r.Method == http.MethodPost && strings.Contains(r.URL.Path, "/steps") {
+		h.handleStep(w, r)
+		return
+	}
+	if r.Method == http.MethodPost {
+		h.handleCreate(w, r)
+		return
+	}
+	w.WriteHeader(http.StatusMethodNotAllowed)
+}
+
+func (h SessionHandler) handleCreate(w http.ResponseWriter, r *http.Request) {
+	if h.Runtime == nil || h.Registry == nil {
+		w.WriteHeader(http.StatusNotImplemented)
+		return
+	}
+	var req sessionRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		log.Printf("sessions: decode error: %v", err)
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	if req.SessionID == "" {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	runtimeID, err := h.Runtime.StartSession(r.Context(), req.SessionID, req.PolicyID, req.WorkspaceRef, req.Runtime)
+	if err != nil {
+		log.Printf("sessions: start error: %v", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	if err := h.Registry.Put(req.SessionID, runtimeID); err != nil {
+		log.Printf("sessions: registry error: %v", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusAccepted)
+	_ = json.NewEncoder(w).Encode(sessionResponse{ID: req.SessionID, RuntimeID: runtimeID, Status: "running"})
+}
+
+func (h SessionHandler) handleStep(w http.ResponseWriter, r *http.Request) {
+	if h.Runtime == nil || h.Registry == nil {
+		w.WriteHeader(http.StatusNotImplemented)
+		return
+	}
+	sessionID := chi.URLParam(r, "sessionId")
+	if sessionID == "" {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	var req sessionStepRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	if req.Command == "" {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	runtimeID, ok := h.Registry.Get(sessionID)
+	if !ok {
+		w.WriteHeader(http.StatusNotFound)
+		return
+	}
+	output, err := h.Runtime.RunStep(r.Context(), runtimeID, req.Command)
+	if err != nil {
+		log.Printf("sessions: step error: %v", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusAccepted)
+	_ = json.NewEncoder(w).Encode(sessionStepResponse{
+		Status: "accepted",
+		Stdout: output.Stdout,
+		Stderr: output.Stderr,
+	})
+}
+
+func (h SessionHandler) handleTerminate(w http.ResponseWriter, r *http.Request) {
+	if h.Runtime == nil || h.Registry == nil {
+		w.WriteHeader(http.StatusNotImplemented)
+		return
+	}
+	sessionID := chi.URLParam(r, "sessionId")
+	if sessionID == "" {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	runtimeID, ok := h.Registry.Get(sessionID)
+	if !ok {
+		w.WriteHeader(http.StatusNotFound)
+		return
+	}
+	if err := h.Runtime.TerminateSession(r.Context(), runtimeID); err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	h.Registry.Delete(sessionID)
+	w.WriteHeader(http.StatusAccepted)
+}
+
 func (h RunHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if r.Method == http.MethodPost && strings.HasSuffix(r.URL.Path, "/terminate") {
 		h.handleTerminate(w, r)

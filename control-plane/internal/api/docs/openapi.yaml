@@ -1,0 +1,332 @@
+openapi: 3.0.3
+info:
+  title: Sandboxed Code Execution Control Plane API
+  version: 0.1.0
+servers:
+  - url: https://sandbox.internal/api
+paths:
+  /jobs:
+    post:
+      summary: Submit a one-shot job
+      description: Control plane validates policy and requests execution from the data plane.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/JobCreate"
+      responses:
+        "202":
+          description: Job accepted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Job"
+  /jobs/{jobId}:
+    get:
+      summary: Get job status and results
+      parameters:
+        - name: jobId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Job details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Job"
+  /sessions:
+    post:
+      summary: Create a session
+      description: Control plane provisions a session and asks data plane to allocate a sandbox.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SessionCreate"
+      responses:
+        "201":
+          description: Session created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Session"
+  /sessions/{sessionId}/steps:
+    post:
+      summary: Execute a step in a session
+      parameters:
+        - name: sessionId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SessionStepCreate"
+      responses:
+        "202":
+          description: Step accepted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SessionStep"
+  /artifacts/{artifactId}/download:
+    get:
+      summary: Download an artifact
+      parameters:
+        - name: artifactId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "302":
+          description: Redirect to artifact storage
+  /artifacts/upload:
+    post:
+      summary: Upload an artifact
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ArtifactUpload"
+      responses:
+        "201":
+          description: Upload accepted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Artifact"
+  /policies:
+    post:
+      summary: Create or update a policy
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Policy"
+      responses:
+        "200":
+          description: Policy stored
+  /audit/events:
+    get:
+      summary: Query audit events
+      parameters:
+        - name: tenantId
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Audit events
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AuditEvent"
+  /workflows:
+    post:
+      summary: Create a workflow
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WorkflowCreate"
+      responses:
+        "202":
+          description: Workflow accepted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Workflow"
+  /services:
+    post:
+      summary: Start a sandboxed service
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ServiceCreate"
+      responses:
+        "202":
+          description: Service accepted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Service"
+components:
+  schemas:
+    JobCreate:
+      type: object
+      required: [tenantId, agentId, policyId, language, code]
+      properties:
+        tenantId:
+          type: string
+        agentId:
+          type: string
+        policyId:
+          type: string
+        language:
+          type: string
+        code:
+          type: string
+        artifacts:
+          type: array
+          items:
+            type: string
+    Job:
+      type: object
+      properties:
+        id:
+          type: string
+        status:
+          type: string
+        exitStatus:
+          type: integer
+        outputRef:
+          type: string
+        errorRef:
+          type: string
+        artifactRefs:
+          type: array
+          items:
+            type: string
+    SessionCreate:
+      type: object
+      required: [tenantId, agentId, policyId, ttlSeconds]
+      properties:
+        tenantId:
+          type: string
+        agentId:
+          type: string
+        policyId:
+          type: string
+        runtime:
+          type: string
+        ttlSeconds:
+          type: integer
+    Session:
+      type: object
+      properties:
+        id:
+          type: string
+        status:
+          type: string
+        expiresAt:
+          type: string
+          format: date-time
+    SessionStepCreate:
+      type: object
+      required: [command]
+      properties:
+        command:
+          type: string
+    SessionStep:
+      type: object
+      properties:
+        id:
+          type: string
+        status:
+          type: string
+        stdout:
+          type: string
+        stderr:
+          type: string
+    ArtifactUpload:
+      type: object
+      required: [tenantId, name, sizeBytes]
+      properties:
+        tenantId:
+          type: string
+        name:
+          type: string
+        sizeBytes:
+          type: integer
+    Artifact:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        sizeBytes:
+          type: integer
+        downloadUrl:
+          type: string
+    Policy:
+      type: object
+      required: [tenantId, name, version, ruleset]
+      properties:
+        tenantId:
+          type: string
+        name:
+          type: string
+        version:
+          type: integer
+        ruleset:
+          type: string
+    AuditEvent:
+      type: object
+      properties:
+        id:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+        actorId:
+          type: string
+        action:
+          type: string
+        resourceType:
+          type: string
+        resourceId:
+          type: string
+        outcome:
+          type: string
+    WorkflowCreate:
+      type: object
+      required: [tenantId, steps]
+      properties:
+        tenantId:
+          type: string
+        steps:
+          type: array
+          items:
+            type: string
+    Workflow:
+      type: object
+      properties:
+        id:
+          type: string
+        status:
+          type: string
+    ServiceCreate:
+      type: object
+      required: [tenantId, policyId]
+      properties:
+        tenantId:
+          type: string
+        policyId:
+          type: string
+    Service:
+      type: object
+      properties:
+        id:
+          type: string
+        status:
+          type: string
+        proxyUrl:
+          type: string
