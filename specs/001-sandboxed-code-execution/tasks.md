@@ -254,6 +254,7 @@ description: "Task list template for feature implementation"
 - [X] T099 Capture session step stdout/stderr from k8s exec and return in response in `data-plane/internal/runtime/session_k8s.go` and `data-plane/internal/runtime/handlers.go`
 - [X] T100 Propagate session step output through control-plane client and API response in `control-plane/pkg/client/data_plane_client.go`, `control-plane/internal/sessions/session_service.go`, and `control-plane/internal/api/handlers/sessions.go`
 - [X] T101 Add tests for session step output propagation in `data-plane/tests/integration/session_runner_test.go` and `control-plane/tests/integration/session_flow_test.go`
+- [ ] T102 Validate tenant ID on session creation against auth context in `control-plane/internal/api/middleware/auth.go` and `control-plane/internal/api/handlers/sessions.go`
 
 ## Dependencies & Execution Order
 
