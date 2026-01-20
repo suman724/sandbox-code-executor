@@ -53,6 +53,7 @@ type sessionRequest struct {
 	SessionID    string `json:"sessionId"`
 	PolicyID     string `json:"policyId"`
 	WorkspaceRef string `json:"workspaceRef"`
+	Runtime      string `json:"runtime"`
 }
 
 type sessionResponse struct {
@@ -102,7 +103,7 @@ func (h SessionHandler) handleCreate(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
-	runtimeID, err := h.Runtime.StartSession(r.Context(), req.SessionID, req.PolicyID, req.WorkspaceRef)
+	runtimeID, err := h.Runtime.StartSession(r.Context(), req.SessionID, req.PolicyID, req.WorkspaceRef, req.Runtime)
 	if err != nil {
 		log.Printf("sessions: start error: %v", err)
 		w.WriteHeader(http.StatusInternalServerError)

@@ -23,7 +23,7 @@ type KubernetesSessionRuntime struct {
 	Image        string
 }
 
-func (r KubernetesSessionRuntime) StartSession(ctx context.Context, sessionID string, policyID string, workspaceRef string) (string, error) {
+func (r KubernetesSessionRuntime) StartSession(ctx context.Context, sessionID string, policyID string, workspaceRef string, runtime string) (string, error) {
 	_ = policyID
 	_ = workspaceRef
 	if r.Client == nil {
@@ -35,10 +35,7 @@ func (r KubernetesSessionRuntime) StartSession(ctx context.Context, sessionID st
 	if r.Namespace == "" {
 		r.Namespace = "default"
 	}
-	image := r.Image
-	if image == "" {
-		image = "busybox:1.36"
-	}
+	image := imageForRuntime(runtime, r.Image)
 	podName := fmt.Sprintf("session-%s", sessionID)
 	pod := &corev1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
@@ -136,4 +133,18 @@ func runtimeClassName(value string) *string {
 		return nil
 	}
 	return &value
+}
+
+func imageForRuntime(runtime string, fallback string) string {
+	switch runtime {
+	case "python":
+		return "python:3.12-slim"
+	case "node":
+		return "node:20-alpine"
+	default:
+		if fallback != "" {
+			return fallback
+		}
+		return "busybox:1.36"
+	}
 }

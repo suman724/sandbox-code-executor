@@ -21,6 +21,7 @@ type sessionRequest struct {
 	AgentID    string `json:"agentId"`
 	PolicyID   string `json:"policyId"`
 	TTLSeconds int    `json:"ttlSeconds"`
+	Runtime    string `json:"runtime"`
 }
 
 type sessionResponse struct {
@@ -59,6 +60,7 @@ func (h SessionHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		TenantID: req.TenantID,
 		AgentID:  req.AgentID,
 		PolicyID: req.PolicyID,
+		Runtime:  req.Runtime,
 		TTL:      time.Duration(req.TTLSeconds) * time.Second,
 		Status:   sessions.StatusActive,
 	}

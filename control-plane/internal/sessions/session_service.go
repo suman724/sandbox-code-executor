@@ -58,6 +58,7 @@ func (s Service) CreateSession(ctx context.Context, session Session) (string, er
 		SessionID:    session.ID,
 		PolicyID:     session.PolicyID,
 		WorkspaceRef: session.ID,
+		Runtime:      session.Runtime,
 	})
 	if err != nil {
 		return "", err

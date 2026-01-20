@@ -27,6 +27,7 @@ type SessionCreateRequest struct {
 	SessionID    string `json:"sessionId"`
 	PolicyID     string `json:"policyId,omitempty"`
 	WorkspaceRef string `json:"workspaceRef"`
+	Runtime      string `json:"runtime,omitempty"`
 }
 
 type SessionResponse struct {

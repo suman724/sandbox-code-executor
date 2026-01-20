@@ -143,6 +143,8 @@ components:
           type: string
         workspaceRef:
           type: string
+        runtime:
+          type: string
     Session:
       type: object
       properties:

@@ -214,6 +214,8 @@ components:
           type: string
         policyId:
           type: string
+        runtime:
+          type: string
         ttlSeconds:
           type: integer
     Session:

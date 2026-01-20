@@ -34,7 +34,7 @@ run-local-control-plane:
 		$(MAKE) run-control-plane
 
 run-local-data-plane:
-	@ENV=dev RUNTIME_NAMESPACE=default RUNTIME_CLASS=gvisor AUTHZ_BYPASS=true \
+	@ENV=dev RUNTIME_NAMESPACE=default RUNTIME_CLASS=gvisor SESSION_RUNTIME_BACKEND=local SESSION_REGISTRY_BACKEND=memory SESSION_REGISTRY_PATH=/tmp/session-registry.json AUTHZ_BYPASS=true \
 		$(MAKE) run-data-plane
 
 run-control-plane:

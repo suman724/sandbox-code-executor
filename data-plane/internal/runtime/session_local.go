@@ -29,10 +29,11 @@ func NewLocalSessionRuntime() *LocalSessionRuntime {
 	return &LocalSessionRuntime{processes: map[string]*sessionProcess{}}
 }
 
-func (r *LocalSessionRuntime) StartSession(ctx context.Context, sessionID string, policyID string, workspaceRef string) (string, error) {
+func (r *LocalSessionRuntime) StartSession(ctx context.Context, sessionID string, policyID string, workspaceRef string, runtime string) (string, error) {
 	_ = ctx
 	_ = policyID
 	_ = workspaceRef
+	_ = runtime
 	if sessionID == "" {
 		return "", errors.New("missing session id")
 	}
