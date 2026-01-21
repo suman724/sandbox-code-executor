@@ -68,7 +68,6 @@ type sessionResponse struct {
 
 type sessionStepRequest struct {
 	Command string `json:"command"`
-	Runtime string `json:"runtime"`
 }
 
 type sessionStepResponse struct {
@@ -148,18 +147,10 @@ func (h SessionHandler) handleStep(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
-	if req.Runtime == "" {
-		w.WriteHeader(http.StatusBadRequest)
-		return
-	}
 	stepID := "step-" + time.Now().UTC().Format("20060102150405.000")
 	route, ok := h.Registry.Get(sessionID)
 	if !ok {
 		writeJSONError(w, http.StatusGone, "session_expired", "session not found")
-		return
-	}
-	if !strings.EqualFold(route.Runtime, req.Runtime) {
-		writeJSONError(w, http.StatusConflict, "runtime_mismatch", "session runtime does not match requested runtime")
 		return
 	}
 	if h.Agent != nil && route.Endpoint != "" && h.AgentPrefer {
@@ -171,7 +162,7 @@ func (h SessionHandler) handleStep(w http.ResponseWriter, r *http.Request) {
 			SessionID: sessionID,
 			StepID:    stepID,
 			Code:      req.Command,
-			Runtime:   req.Runtime,
+			Runtime:   route.Runtime,
 		})
 		if agentErr == nil {
 			log.Printf("sessions: route session_id=%s runtime_id=%s endpoint=%s auth_mode=%s step_id=%s status=%s", sessionID, route.RuntimeID, route.Endpoint, route.AuthMode, stepID, agentResult.Status)

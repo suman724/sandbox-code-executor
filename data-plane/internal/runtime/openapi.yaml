@@ -156,11 +156,9 @@ components:
           type: string
     SessionStepCreate:
       type: object
-      required: [command, runtime]
+      required: [command]
       properties:
         command:
-          type: string
-        runtime:
           type: string
     SessionStepResponse:
       type: object

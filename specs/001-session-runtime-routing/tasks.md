@@ -144,6 +144,8 @@ description: "Task list for session runtime routing"
 - [X] T062 Add explicit errors for expired sessions/runtime crashes in `data-plane/internal/runtime/handlers.go` and `data-plane/internal/runtime/session_registry.go`
 - [X] T063 Cleanup k8s pod on readiness/health timeout in `data-plane/internal/runtime/session_k8s.go`
 - [X] T064 Reject re-registering a session with a different runtime in `session-agent/internal/runtime/runner.go`
+- [X] T065 Remove runtime from data-plane step API: update `data-plane/internal/runtime/handlers.go`, `data-plane/internal/runtime/openapi.yaml`, and `control-plane/pkg/client/data_plane_client.go` to stop requiring runtime on step requests
+- [X] T066 Route agent step calls using the session route runtime (not request payload) in `data-plane/internal/runtime/handlers.go` and `data-plane/internal/runtime/session_registry.go`
 
 ---
 

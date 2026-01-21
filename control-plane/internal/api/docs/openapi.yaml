@@ -204,7 +204,7 @@ components:
             type: string
     SessionCreate:
       type: object
-      required: [tenantId, agentId, policyId, ttlSeconds]
+      required: [tenantId, agentId, policyId, ttlSeconds, runtime]
       properties:
         tenantId:
           type: string

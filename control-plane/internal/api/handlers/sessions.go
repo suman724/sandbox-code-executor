@@ -55,6 +55,10 @@ func (h SessionHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
+	if req.Runtime == "" {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
 	session := sessions.Session{
 		ID:       "session-" + time.Now().UTC().Format("20060102150405"),
 		TenantID: req.TenantID,

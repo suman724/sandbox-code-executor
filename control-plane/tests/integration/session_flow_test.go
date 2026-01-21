@@ -75,6 +75,7 @@ func TestSessionFlowIntegration(t *testing.T) {
 		"tenantId":   "tenant-1",
 		"agentId":    "agent-1",
 		"policyId":   "policy-1",
+		"runtime":    "python",
 		"ttlSeconds": 60,
 	}
 	body, err := json.Marshal(payload)
