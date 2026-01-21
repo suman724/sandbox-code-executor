@@ -2,7 +2,7 @@ FROM golang:1.23 AS builder
 
 WORKDIR /src/session-agent
 
-COPY session-agent/go.mod session-agent/go.sum ./
+COPY session-agent/go.mod ./
 RUN go mod download
 
 COPY session-agent/ ./
