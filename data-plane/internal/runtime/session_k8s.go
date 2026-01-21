@@ -4,30 +4,31 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"path/filepath"
+	"time"
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
+	"shared/sessionagent"
 )
 
 type KubernetesSessionRuntime struct {
-	Client       kubernetes.Interface
-	Config       *rest.Config
-	Namespace    string
-	RuntimeClass string
-	Image        string
-	PythonImage  string
-	NodeImage    string
-	Env          string
-	AgentAddr    string
-	AgentAuthMode  string
-	AgentAuthToken string
+	Client        kubernetes.Interface
+	Config        *rest.Config
+	Namespace     string
+	RuntimeClass  string
+	Image         string
+	PythonImage   string
+	NodeImage     string
+	Env           string
+	AgentAddr     string
+	AgentAuthMode string
 }
 
 func (r KubernetesSessionRuntime) StartSession(ctx context.Context, sessionID string, policyID string, workspaceRef string, runtime string) (SessionRoute, error) {
 	_ = policyID
-	_ = workspaceRef
 	if r.Client == nil {
 		return SessionRoute{}, errors.New("missing kubernetes client")
 	}
@@ -39,6 +40,11 @@ func (r KubernetesSessionRuntime) StartSession(ctx context.Context, sessionID st
 	}
 	image := imageForRuntime(runtime, r.PythonImage, r.NodeImage, r.Image)
 	podName := fmt.Sprintf("session-%s", sessionID)
+	workspaceRoot := "/workspace"
+	workspaceDir := filepath.Join(workspaceRoot, sessionID)
+	if workspaceRef != "" {
+		workspaceDir = filepath.Join(workspaceRoot, workspaceRef)
+	}
 	envVars := []corev1.EnvVar{}
 	if r.Env != "" {
 		envVars = append(envVars, corev1.EnvVar{Name: "ENV", Value: r.Env})
@@ -46,14 +52,13 @@ func (r KubernetesSessionRuntime) StartSession(ctx context.Context, sessionID st
 	if r.AgentAddr != "" {
 		envVars = append(envVars, corev1.EnvVar{Name: "SESSION_AGENT_ADDR", Value: r.AgentAddr})
 	}
+	envVars = append(envVars, corev1.EnvVar{Name: "WORKSPACE_ROOT", Value: workspaceRoot})
 	if r.AgentAuthMode == "bypass" {
 		envVars = append(envVars, corev1.EnvVar{Name: "SESSION_AGENT_AUTH_BYPASS", Value: "true"})
 	} else {
 		envVars = append(envVars, corev1.EnvVar{Name: "SESSION_AGENT_AUTH_BYPASS", Value: "false"})
-		if r.AgentAuthToken != "" {
-			envVars = append(envVars, corev1.EnvVar{Name: "SESSION_AGENT_AUTH_TOKEN", Value: r.AgentAuthToken})
-		}
 	}
+	volumeName := "workspace"
 	pod := &corev1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      podName,
@@ -65,11 +70,25 @@ func (r KubernetesSessionRuntime) StartSession(ctx context.Context, sessionID st
 		},
 		Spec: corev1.PodSpec{
 			RuntimeClassName: runtimeClassName(r.RuntimeClass),
+			Volumes: []corev1.Volume{
+				{
+					Name: volumeName,
+					VolumeSource: corev1.VolumeSource{
+						EmptyDir: &corev1.EmptyDirVolumeSource{},
+					},
+				},
+			},
 			Containers: []corev1.Container{
 				{
-					Name:    "session",
-					Image:   image,
-					Env:     envVars,
+					Name:  "session",
+					Image: image,
+					Env:   envVars,
+					VolumeMounts: []corev1.VolumeMount{
+						{
+							Name:      volumeName,
+							MountPath: workspaceRoot,
+						},
+					},
 				},
 			},
 			RestartPolicy: corev1.RestartPolicyNever,
@@ -78,11 +97,37 @@ func (r KubernetesSessionRuntime) StartSession(ctx context.Context, sessionID st
 	if _, err := r.Client.CoreV1().Pods(r.Namespace).Create(ctx, pod, metav1.CreateOptions{}); err != nil {
 		return SessionRoute{}, err
 	}
+	timeout := durationFromEnv("SESSION_READY_TIMEOUT", 60*time.Second)
+	readyCtx, cancel := context.WithTimeout(ctx, timeout)
+	defer cancel()
+	if err := r.WaitForPodReady(readyCtx, podName); err != nil {
+		return SessionRoute{}, err
+	}
 	endpoint := r.buildAgentEndpoint(ctx, podName)
+	client := NewAgentClient()
+	if err := client.WaitForHealth(readyCtx, endpoint, 500*time.Millisecond); err != nil {
+		return SessionRoute{}, err
+	}
+	token := ""
+	if r.AgentAuthMode != "bypass" {
+		token = generateSessionToken()
+	}
+	if err := client.RegisterSession(ctx, AgentRoute{
+		Endpoint: endpoint,
+		Token:    token,
+		AuthMode: r.AgentAuthMode,
+	}, sessionagent.SessionRegisterRequest{
+		SessionID:    sessionID,
+		Runtime:      runtime,
+		Token:        token,
+		WorkspaceDir: workspaceDir,
+	}); err != nil {
+		return SessionRoute{}, err
+	}
 	return SessionRoute{
 		RuntimeID: podName,
 		Endpoint:  endpoint,
-		Token:     r.AgentAuthToken,
+		Token:     token,
 		AuthMode:  r.AgentAuthMode,
 	}, nil
 }
@@ -154,4 +199,42 @@ func (r KubernetesSessionRuntime) buildAgentEndpoint(ctx context.Context, podNam
 		}
 	}
 	return fmt.Sprintf("http://%s.%s.pod:9000", podName, namespace)
+}
+
+func (r KubernetesSessionRuntime) WaitForPodReady(ctx context.Context, podName string) error {
+	namespace := r.Namespace
+	if namespace == "" {
+		namespace = "default"
+	}
+	ticker := time.NewTicker(500 * time.Millisecond)
+	defer ticker.Stop()
+	for {
+		pod, err := r.Client.CoreV1().Pods(namespace).Get(ctx, podName, metav1.GetOptions{})
+		if err == nil && podReady(pod) {
+			return nil
+		}
+		select {
+		case <-ctx.Done():
+			if err != nil {
+				return err
+			}
+			return ctx.Err()
+		case <-ticker.C:
+		}
+	}
+}
+
+func podReady(pod *corev1.Pod) bool {
+	if pod == nil {
+		return false
+	}
+	if pod.Status.Phase != corev1.PodRunning {
+		return false
+	}
+	for _, condition := range pod.Status.Conditions {
+		if condition.Type == corev1.PodReady && condition.Status == corev1.ConditionTrue {
+			return true
+		}
+	}
+	return false
 }

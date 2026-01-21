@@ -58,6 +58,49 @@ We split the system into:
 6. Results/artifacts stored; control plane finalizes execution record.
 7. MCP returns structured results to the agent.
 
+## 3.1 Session runtime flows
+
+### Local session flow
+
+```mermaid
+sequenceDiagram
+  participant Client
+  participant ControlPlane
+  participant DataPlane
+  participant SessionAgent
+  Client->>ControlPlane: POST /sessions
+  ControlPlane->>DataPlane: create session
+  DataPlane->>SessionAgent: POST /v1/sessions
+  Client->>ControlPlane: POST /sessions/{id}/steps
+  ControlPlane->>DataPlane: submit step
+  DataPlane->>SessionAgent: POST /v1/steps
+  SessionAgent-->>DataPlane: stdout stderr
+  DataPlane-->>ControlPlane: step result
+  ControlPlane-->>Client: stdout stderr
+```
+
+### Kubernetes session flow
+
+```mermaid
+sequenceDiagram
+  participant Client
+  participant ControlPlane
+  participant DataPlane
+  participant Pod
+  Client->>ControlPlane: POST /sessions
+  ControlPlane->>DataPlane: create session
+  DataPlane->>Pod: create pod
+  DataPlane->>Pod: wait for ready
+  DataPlane->>Pod: POST /v1/health
+  DataPlane->>Pod: POST /v1/sessions
+  Client->>ControlPlane: POST /sessions/{id}/steps
+  ControlPlane->>DataPlane: submit step
+  DataPlane->>Pod: POST /v1/steps
+  Pod-->>DataPlane: stdout stderr
+  DataPlane-->>ControlPlane: step result
+  ControlPlane-->>Client: stdout stderr
+```
+
 ## 4. Sandboxing alternatives: gVisor vs Firecracker
 
 ### Option A: gVisor (user-space kernel sandbox for containers)
@@ -596,4 +639,3 @@ sequenceDiagram
 - Content scanning + DLP on artifacts
 - Language plugins (Rust/Go/Java) with curated toolchains
 - Inline notebook protocol (optional) for richer agent workflows
-

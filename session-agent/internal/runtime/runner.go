@@ -1,11 +1,8 @@
 package runtime
 
 import (
-	"bytes"
 	"context"
 	"errors"
-	"fmt"
-	"os/exec"
 	"strings"
 	"sync"
 
@@ -13,12 +10,15 @@ import (
 )
 
 type Session struct {
-	ID      string
-	Runtime string
+	ID           string
+	Runtime      string
+	Token        string
+	WorkspaceDir string
+	Process      *sessionProcess
 }
 
 type Runner struct {
-	mu       sync.Mutex
+	mu       sync.RWMutex
 	sessions map[string]*Session
 }
 
@@ -26,32 +26,66 @@ func NewRunner() *Runner {
 	return &Runner{sessions: make(map[string]*Session)}
 }
 
-func (r *Runner) EnsureSession(sessionID string, runtime string) *Session {
-	r.mu.Lock()
-	defer r.mu.Unlock()
-
-	if session, ok := r.sessions[sessionID]; ok {
-		return session
+func (r *Runner) RegisterSession(req sessionagent.SessionRegisterRequest) (*Session, error) {
+	if req.SessionID == "" {
+		return nil, errors.New("missing session id")
+	}
+	if strings.TrimSpace(req.Runtime) == "" {
+		return nil, errors.New("missing runtime")
 	}
 
-	session := &Session{ID: sessionID, Runtime: runtime}
-	r.sessions[sessionID] = session
-	return session
+	r.mu.Lock()
+	if session, ok := r.sessions[req.SessionID]; ok {
+		if req.Token != "" {
+			session.Token = req.Token
+		}
+		if req.WorkspaceDir != "" {
+			session.WorkspaceDir = req.WorkspaceDir
+		}
+		r.mu.Unlock()
+		return session, nil
+	}
+	r.mu.Unlock()
+
+	process, err := startSessionProcess(req.Runtime, req.WorkspaceDir)
+	if err != nil {
+		return nil, err
+	}
+	session := &Session{
+		ID:           req.SessionID,
+		Runtime:      req.Runtime,
+		Token:        req.Token,
+		WorkspaceDir: req.WorkspaceDir,
+		Process:      process,
+	}
+	r.mu.Lock()
+	r.sessions[req.SessionID] = session
+	r.mu.Unlock()
+	return session, nil
 }
 
 func (r *Runner) GetSession(sessionID string) (*Session, bool) {
-	r.mu.Lock()
-	defer r.mu.Unlock()
+	r.mu.RLock()
+	defer r.mu.RUnlock()
 
 	session, ok := r.sessions[sessionID]
 	return session, ok
 }
 
-func (r *Runner) RemoveSession(sessionID string) {
-	r.mu.Lock()
-	defer r.mu.Unlock()
-
-	delete(r.sessions, sessionID)
+func (r *Runner) Authorize(sessionID string, token string) error {
+	if token == "" {
+		return errors.New("missing session token")
+	}
+	r.mu.RLock()
+	session, ok := r.sessions[sessionID]
+	r.mu.RUnlock()
+	if !ok {
+		return errors.New("session not registered")
+	}
+	if session.Token == "" || session.Token != token {
+		return errors.New("invalid session token")
+	}
+	return nil
 }
 
 func (r *Runner) RunStep(ctx context.Context, req sessionagent.StepRequest) (sessionagent.StepResult, error) {
@@ -65,8 +99,14 @@ func (r *Runner) RunStep(ctx context.Context, req sessionagent.StepRequest) (ses
 		return sessionagent.StepResult{}, errors.New("missing step code")
 	}
 
-	session := r.EnsureSession(req.SessionID, req.Runtime)
-	stdout, stderr, err := runCommand(ctx, session.Runtime, req.Code)
+	session, ok := r.GetSession(req.SessionID)
+	if !ok {
+		return sessionagent.StepResult{}, errors.New("session not registered")
+	}
+	if session.Process == nil {
+		return sessionagent.StepResult{}, errors.New("session process not available")
+	}
+	stdout, stderr, err := session.Process.RunStep(req.Code)
 	status := sessionagent.StepStatusCompleted
 	if err != nil {
 		status = sessionagent.StepStatusFailed
@@ -81,25 +121,14 @@ func (r *Runner) RunStep(ctx context.Context, req sessionagent.StepRequest) (ses
 	}, nil
 }
 
-func runCommand(ctx context.Context, runtime string, code string) (string, string, error) {
-	cmd := buildCommand(runtime, code)
-	var stdout bytes.Buffer
-	var stderr bytes.Buffer
-	cmd.Stdout = &stdout
-	cmd.Stderr = &stderr
-	if err := cmd.Run(); err != nil {
-		return stdout.String(), stderr.String(), err
+func (r *Runner) RemoveSession(sessionID string) {
+	r.mu.Lock()
+	session, ok := r.sessions[sessionID]
+	if ok {
+		delete(r.sessions, sessionID)
 	}
-	return stdout.String(), stderr.String(), nil
-}
-
-func buildCommand(runtime string, code string) *exec.Cmd {
-	normalized := strings.ToLower(strings.TrimSpace(runtime))
-	if normalized == "python" || normalized == "python3" {
-		return exec.Command("python3", "-c", code)
+	r.mu.Unlock()
+	if ok && session.Process != nil {
+		_ = session.Process.Close()
 	}
-	if normalized == "node" || normalized == "javascript" {
-		return exec.Command("node", "-e", code)
-	}
-	return exec.Command("sh", "-c", fmt.Sprintf("%s", code))
 }

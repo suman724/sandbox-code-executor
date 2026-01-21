@@ -134,9 +134,22 @@ ENV=dev SESSION_AGENT_AUTH_BYPASS=true make run-session-agent
 ```bash
 curl -s http://localhost:9000/v1/health
 
+curl -s -X POST http://localhost:9000/v1/sessions \
+  -H 'Content-Type: application/json' \
+  -d '{"sessionId":"session-1","runtime":"python"}'
+
 curl -s -X POST http://localhost:9000/v1/steps \
   -H 'Content-Type: application/json' \
   -d '{"sessionId":"session-1","stepId":"step-1","code":"print(\"hello\")"}'
+```
+
+If auth bypass is disabled, include the session token:
+
+```bash
+curl -s -X POST http://localhost:9000/v1/sessions \
+  -H 'Content-Type: application/json' \
+  -H 'X-Session-Token: token-1' \
+  -d '{"sessionId":"session-1","runtime":"python","token":"token-1"}'
 ```
 
 ### Docker images
@@ -162,13 +175,15 @@ Common environment variables:
   - `SESSION_REGISTRY_BACKEND` (`memory` or `file`) and `SESSION_REGISTRY_PATH` (file backend)
   - `SESSION_RUNTIME_IMAGE` (fallback image for session pods)
   - `SESSION_RUNTIME_IMAGE_PYTHON`, `SESSION_RUNTIME_IMAGE_NODE`
-  - `SESSION_AGENT_ENDPOINT`, `SESSION_AGENT_AUTH_MODE`, `SESSION_AGENT_AUTH_TOKEN`
+  - `SESSION_AGENT_ENDPOINT`, `SESSION_AGENT_AUTH_MODE`, `SESSION_AGENT_PREFER`
+  - `SESSION_READY_TIMEOUT` (duration, default `60s`)
+  - `WORKSPACE_ROOT` (local workspace root for session files)
   - `AUTH_JWT_SECRET`, `AUTH_ISSUER`, `AUTH_AUDIENCE`
   - `AUTHZ_BYPASS` (non-production only)
 - Session agent:
   - `ENV`, `SESSION_AGENT_ADDR`
   - `SESSION_AGENT_AUTH_BYPASS` (non-production only)
-  - `SESSION_AGENT_AUTH_TOKEN` (required when bypass is false)
+  - `SESSION_AGENT_AUTH_BYPASS=false` requires a per-session token passed via `X-Session-Token`
 
 SQLite can be used for non-production testing by setting:
 
@@ -189,13 +204,58 @@ MCP endpoints:
 Session notes:
 - `POST /sessions` accepts an optional `runtime` (for example `python` or `node`).
 - Step responses include `stdout` and `stderr` output payloads.
+- Data-plane generates per-session tokens and registers them with the session-agent when auth is enforced.
 
 Local data-plane example (routing to a locally running session-agent):
 
 ```bash
 SESSION_AGENT_ENDPOINT=http://localhost:9000 \
 SESSION_AGENT_AUTH_MODE=bypass \
+SESSION_AGENT_PREFER=true \
 ENV=dev SESSION_RUNTIME_BACKEND=local make run-data-plane
+```
+
+### Session execution flows
+
+Local execution (session-agent on localhost):
+
+```mermaid
+sequenceDiagram
+  participant Client
+  participant ControlPlane
+  participant DataPlane
+  participant SessionAgent
+  Client->>ControlPlane: POST /sessions
+  ControlPlane->>DataPlane: create session
+  DataPlane->>SessionAgent: POST /v1/sessions
+  Client->>ControlPlane: POST /sessions/{id}/steps
+  ControlPlane->>DataPlane: submit step
+  DataPlane->>SessionAgent: POST /v1/steps
+  SessionAgent-->>DataPlane: stdout stderr
+  DataPlane-->>ControlPlane: step result
+  ControlPlane-->>Client: stdout stderr
+```
+
+Kubernetes execution (session-agent in pod):
+
+```mermaid
+sequenceDiagram
+  participant Client
+  participant ControlPlane
+  participant DataPlane
+  participant Pod
+  Client->>ControlPlane: POST /sessions
+  ControlPlane->>DataPlane: create session
+  DataPlane->>Pod: create pod
+  DataPlane->>Pod: wait for ready
+  DataPlane->>Pod: POST /v1/health
+  DataPlane->>Pod: POST /v1/sessions
+  Client->>ControlPlane: POST /sessions/{id}/steps
+  ControlPlane->>DataPlane: submit step
+  DataPlane->>Pod: POST /v1/steps
+  Pod-->>DataPlane: stdout stderr
+  DataPlane-->>ControlPlane: step result
+  ControlPlane-->>Client: stdout stderr
 ```
 
 ### Kubernetes testing
@@ -206,10 +266,10 @@ ENV=dev SESSION_RUNTIME_BACKEND=local make run-data-plane
 2. Set data-plane envs:
    - `SESSION_RUNTIME_IMAGE_PYTHON`, `SESSION_RUNTIME_IMAGE_NODE`
    - `SESSION_AGENT_AUTH_MODE=enforced`
-   - `SESSION_AGENT_AUTH_TOKEN` (shared secret)
+   - `SESSION_AGENT_PREFER=true`
 3. Deploy control-plane and data-plane, then create a session via control-plane and submit steps.
 
 ## Additional documentation
 
 - Detailed design and diagrams: `architecture/sandbox-executor.md`
-- Feature spec and tasks: `specs/001-sandboxed-code-execution/`
+- Feature spec and tasks: `specs/001-session-runtime-routing/`

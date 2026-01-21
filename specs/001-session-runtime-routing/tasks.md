@@ -113,6 +113,34 @@ description: "Task list for session runtime routing"
 
 ---
 
+## Phase 7: Hardening for Session Agent & Routing
+
+**Goal**: Ensure session-agent provides long-lived per-session REPL state, enforce per-session auth, and stabilize K8s readiness + workspace handling.
+
+### Tests for Phase 7 (MANDATORY) ⚠️
+
+- [X] T052 [P] Unit test per-session token enforcement in `session-agent/tests/unit/auth_test.go`
+- [X] T053 [P] Contract test update for session lifecycle endpoints in `session-agent/tests/contract/agent_api_test.go`
+- [X] T054 [P] Unit test for K8s readiness wait/health probe in `data-plane/tests/unit/session_k8s_ready_test.go`
+
+### Implementation for Phase 7
+
+- [X] T043 [P] Convert runtime images to multi-stage builds to compile session-agent in `deploy/runtime/python/Dockerfile` and `deploy/runtime/node/Dockerfile`
+- [X] T044 Implement per-session REPL process registry and IO locking in `session-agent/internal/runtime/runner.go`
+- [X] T045 Add Python/Node REPL helpers in `session-agent/internal/runtime/repl_python.go` and `session-agent/internal/runtime/repl_node.go`
+- [X] T046 Add session registration endpoint and per-session token storage in `session-agent/internal/api/router.go`, `session-agent/internal/api/handlers/sessions.go`, `session-agent/internal/runtime/runner.go`, and `shared/sessionagent/types.go`
+- [X] T047 Register sessions with agent on start in `data-plane/internal/runtime/session_local.go`, `data-plane/internal/runtime/session_k8s.go`, and `data-plane/internal/runtime/agent_client.go`
+- [X] T048 Wait for pod readiness and agent `/v1/health` before returning route in `data-plane/internal/runtime/session_k8s.go` and `data-plane/internal/runtime/agent_client.go`
+- [X] T049 Wire `workspaceRef` into session working directory and pod volume mount in `data-plane/internal/runtime/session_local.go`, `data-plane/internal/runtime/session_k8s.go`, `data-plane/internal/workspace/session.go`, and `session-agent/internal/runtime/runner.go`
+- [X] T050 Prefer agent routing for session steps when configured in `data-plane/internal/runtime/handlers.go` and `data-plane/internal/config/config.go`
+- [X] T051 Add session termination endpoint and client wiring in `session-agent/internal/api/router.go`, `session-agent/internal/api/handlers/sessions.go`, `session-agent/internal/runtime/runner.go`, `data-plane/internal/runtime/agent_client.go`, and `data-plane/internal/runtime/session_local.go`
+- [X] T055 [P] Update session-agent, data-plane, and runtime image docs with local and Kubernetes flow diagrams in `README.md` and `architecture/sandbox-executor.md`
+- [X] T056 [P] Verify and update build/run targets for session-agent and runtime images in `Makefile`
+- [X] T057 [P] Update runtime Dockerfiles for session-agent packaging in `deploy/runtime/python/Dockerfile` and `deploy/runtime/node/Dockerfile`
+- [X] T058 [P] Update GitHub Actions workflows for runtime image builds and session-agent changes in `.github/workflows`
+
+---
+
 ## Dependencies & Execution Order
 
 ### Phase Dependencies
@@ -130,7 +158,7 @@ description: "Task list for session runtime routing"
 
 ### Parallel Opportunities
 
-- T004, T016, T017, T020, T021, T022, T027, T028, T032, T033, T037, T038, T039 can run in parallel as marked
+- T004, T016, T017, T020, T021, T022, T027, T028, T032, T033, T037, T038, T039, T043, T052, T053, T054 can run in parallel as marked
 
 ---
 

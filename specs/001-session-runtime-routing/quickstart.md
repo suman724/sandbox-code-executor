@@ -4,7 +4,7 @@
 
 1. Create a session via control-plane.
 2. Data-plane provisions a sandbox pod and waits for the session-agent health check.
-3. Data-plane stores a SessionRoute entry mapping the session to the pod endpoint and token.
+3. Data-plane registers the session with the session-agent and stores a SessionRoute entry.
 4. Submit a step via control-plane.
 5. Data-plane forwards the step to the session-agent API and returns stdout/stderr.
 

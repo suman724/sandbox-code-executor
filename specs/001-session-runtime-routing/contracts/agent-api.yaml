@@ -17,6 +17,46 @@ paths:
       responses:
         "200":
           description: Agent is healthy
+  /v1/sessions:
+    post:
+      summary: Register a session runtime
+      security:
+        - SessionToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SessionRegisterRequest"
+      responses:
+        "200":
+          description: Session registered
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SessionRegisterResponse"
+        "401":
+          description: Unauthorized
+  /v1/sessions/{sessionId}/terminate:
+    post:
+      summary: Terminate a session runtime
+      security:
+        - SessionToken: []
+      parameters:
+        - name: sessionId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Session terminated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SessionTerminateResponse"
+        "401":
+          description: Unauthorized
   /v1/steps:
     post:
       summary: Execute a step in a session runtime
@@ -47,6 +87,40 @@ components:
       name: X-Session-Token
       description: Required in production. Optional when auth mode is explicitly set to bypass for non-production.
   schemas:
+    SessionRegisterRequest:
+      type: object
+      required:
+        - sessionId
+        - runtime
+      properties:
+        sessionId:
+          type: string
+        runtime:
+          type: string
+        token:
+          type: string
+        workspaceDir:
+          type: string
+    SessionRegisterResponse:
+      type: object
+      required:
+        - sessionId
+        - status
+      properties:
+        sessionId:
+          type: string
+        status:
+          type: string
+    SessionTerminateResponse:
+      type: object
+      required:
+        - sessionId
+        - status
+      properties:
+        sessionId:
+          type: string
+        status:
+          type: string
     StepRequest:
       type: object
       required:

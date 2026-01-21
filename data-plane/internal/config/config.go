@@ -18,7 +18,7 @@ type Config struct {
 	SessionImageNode    string
 	AgentEndpoint       string
 	AgentAuthMode       string
-	AgentAuthToken      string
+	AgentPrefer         bool
 	OtelEndpoint        string
 	OtelService         string
 	AuthIssuer          string
@@ -40,7 +40,7 @@ func Load() (Config, error) {
 		SessionImageNode:    os.Getenv("SESSION_RUNTIME_IMAGE_NODE"),
 		AgentEndpoint:       os.Getenv("SESSION_AGENT_ENDPOINT"),
 		AgentAuthMode:       getenv("SESSION_AGENT_AUTH_MODE", "enforced"),
-		AgentAuthToken:      os.Getenv("SESSION_AGENT_AUTH_TOKEN"),
+		AgentPrefer:         getenv("SESSION_AGENT_PREFER", "true") == "true",
 		OtelEndpoint:        os.Getenv("OTEL_EXPORTER_OTLP_ENDPOINT"),
 		OtelService:         os.Getenv("OTEL_SERVICE_NAME"),
 		AuthIssuer:          os.Getenv("AUTH_ISSUER"),
@@ -74,9 +74,6 @@ func (c Config) Validate() error {
 	}
 	if c.Env == "production" && c.AgentAuthMode == "bypass" {
 		return errors.New("SESSION_AGENT_AUTH_MODE=bypass is not allowed in production")
-	}
-	if c.AgentAuthMode == "enforced" && c.AgentAuthToken == "" {
-		return errors.New("SESSION_AGENT_AUTH_TOKEN is required when auth mode is enforced")
 	}
 	return nil
 }

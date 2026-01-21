@@ -12,6 +12,23 @@ import (
 )
 
 func TestAgentRoutes(t *testing.T) {
+	sessionHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var payload map[string]string
+		if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+		if payload["sessionId"] == "" || payload["runtime"] == "" {
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`{"sessionId":"session-1","status":"registered"}`))
+	})
+	terminateHandler := http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`{"sessionId":"session-1","status":"terminated"}`))
+	})
 	stepsHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var payload map[string]string
 		if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
@@ -26,7 +43,11 @@ func TestAgentRoutes(t *testing.T) {
 		_, _ = w.Write([]byte(`{"status":"completed","stdout":"","stderr":""}`))
 	})
 
-	router := api.NewRouter(api.RouterDeps{StepsHandler: stepsHandler})
+	router := api.NewRouter(api.RouterDeps{
+		StepsHandler:            stepsHandler,
+		SessionsHandler:         sessionHandler,
+		SessionTerminateHandler: terminateHandler,
+	})
 
 	req := httptest.NewRequest(http.MethodGet, "/v1/health", nil)
 	resp := httptest.NewRecorder()
@@ -50,6 +71,28 @@ func TestAgentRoutes(t *testing.T) {
 	if resp.Code != http.StatusOK {
 		t.Fatalf("expected 200, got %d", resp.Code)
 	}
+
+	body, err = json.Marshal(map[string]string{
+		"sessionId": "session-1",
+		"runtime":   "python",
+	})
+	if err != nil {
+		t.Fatalf("marshal session payload: %v", err)
+	}
+	req = httptest.NewRequest(http.MethodPost, "/v1/sessions", bytes.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	resp = httptest.NewRecorder()
+	router.ServeHTTP(resp, req)
+	if resp.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d", resp.Code)
+	}
+
+	req = httptest.NewRequest(http.MethodPost, "/v1/sessions/session-1/terminate", nil)
+	resp = httptest.NewRecorder()
+	router.ServeHTTP(resp, req)
+	if resp.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d", resp.Code)
+	}
 }
 
 func TestAgentAuthMiddleware(t *testing.T) {
@@ -57,8 +100,8 @@ func TestAgentAuthMiddleware(t *testing.T) {
 		w.WriteHeader(http.StatusOK)
 	})
 	router := api.NewRouter(api.RouterDeps{
-		StepsHandler:  stepsHandler,
-		AuthMiddleware: middleware.AuthTokenMiddleware("token"),
+		StepsHandler:   stepsHandler,
+		AuthMiddleware: middleware.RequireTokenMiddleware,
 	})
 
 	req := httptest.NewRequest(http.MethodPost, "/v1/steps", bytes.NewReader([]byte(`{"sessionId":"s","stepId":"t","code":"print(1)"}`)))

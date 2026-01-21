@@ -4,12 +4,14 @@ import (
 	"encoding/json"
 	"net/http"
 
+	"session-agent/internal/api/middleware"
 	"session-agent/internal/runtime"
 	"shared/sessionagent"
 )
 
 type StepHandler struct {
-	Runner *runtime.Runner
+	Runner       *runtime.Runner
+	RequireToken bool
 }
 
 func (h StepHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -25,6 +27,13 @@ func (h StepHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		return
+	}
+	if h.RequireToken {
+		token := middleware.TokenFromRequest(r)
+		if err := h.Runner.Authorize(req.SessionID, token); err != nil {
+			http.Error(w, "invalid session token", http.StatusUnauthorized)
+			return
+		}
 	}
 	result, err := h.Runner.RunStep(r.Context(), req)
 	if err != nil {

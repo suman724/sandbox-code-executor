@@ -1,5 +1,5 @@
 .PHONY: build test lint format run run-local run-local-control-plane run-local-data-plane run-local-session-agent \
-	build-control-plane build-data-plane build-session-agent \
+	build-control-plane build-data-plane build-session-agent build-runtime-images build-runtime-python build-runtime-node \
 	test-control-plane test-data-plane test-session-agent \
 	run-control-plane run-data-plane run-session-agent
 
@@ -13,6 +13,14 @@ build-data-plane:
 
 build-session-agent:
 	@cd session-agent && go build ./...
+
+build-runtime-images: build-runtime-python build-runtime-node
+
+build-runtime-python:
+	@docker build -f deploy/runtime/python/Dockerfile -t runtime-python:dev .
+
+build-runtime-node:
+	@docker build -f deploy/runtime/node/Dockerfile -t runtime-node:dev .
 
 test: test-control-plane test-data-plane test-session-agent
 
@@ -40,7 +48,7 @@ run-local-control-plane:
 		$(MAKE) run-control-plane
 
 run-local-data-plane:
-	@ENV=dev RUNTIME_NAMESPACE=default RUNTIME_CLASS=gvisor SESSION_RUNTIME_BACKEND=local SESSION_REGISTRY_BACKEND=memory SESSION_REGISTRY_PATH=/tmp/session-registry.json SESSION_AGENT_AUTH_MODE=bypass AUTHZ_BYPASS=true \
+	@ENV=dev RUNTIME_NAMESPACE=default RUNTIME_CLASS=gvisor SESSION_RUNTIME_BACKEND=local SESSION_REGISTRY_BACKEND=memory SESSION_REGISTRY_PATH=/tmp/session-registry.json SESSION_AGENT_AUTH_MODE=bypass SESSION_AGENT_PREFER=true AUTHZ_BYPASS=true \
 		$(MAKE) run-data-plane
 
 run-local-session-agent:

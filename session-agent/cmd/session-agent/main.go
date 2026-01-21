@@ -19,18 +19,22 @@ func main() {
 	}
 	logger := telemetry.NewLogger("session-agent")
 	runner := runtime.NewRunner()
-	stepHandler := handlers.StepHandler{Runner: runner}
+	requireToken := !cfg.AuthBypass
+	stepHandler := handlers.StepHandler{Runner: runner, RequireToken: requireToken}
+	sessionHandler := handlers.SessionHandler{Runner: runner, RequireToken: requireToken}
 
 	var authMiddleware func(http.Handler) http.Handler
 	if cfg.AuthBypass {
 		authMiddleware = middleware.AuthBypassMiddleware
 	} else {
-		authMiddleware = middleware.AuthTokenMiddleware(cfg.AuthToken)
+		authMiddleware = middleware.RequireTokenMiddleware
 	}
 
 	router := api.NewRouter(api.RouterDeps{
-		StepsHandler:  stepHandler,
-		AuthMiddleware: authMiddleware,
+		StepsHandler:            stepHandler,
+		SessionsHandler:         http.HandlerFunc(sessionHandler.Register),
+		SessionTerminateHandler: http.HandlerFunc(sessionHandler.Terminate),
+		AuthMiddleware:          authMiddleware,
 	})
 
 	logger.Info("starting server")

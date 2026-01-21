@@ -1,16 +1,22 @@
+FROM golang:1.23 AS builder
+
+WORKDIR /src/session-agent
+
+COPY session-agent/go.mod session-agent/go.sum ./
+RUN go mod download
+
+COPY session-agent/ ./
+RUN CGO_ENABLED=0 go build -o /out/session-agent ./cmd/session-agent
+
 FROM node:20-slim
 
 WORKDIR /app
 
-COPY session-agent /app/session-agent
-
-WORKDIR /app/session-agent
-RUN go mod download
-RUN go build -o /app/session-agent/bin/session-agent ./cmd/session-agent
+COPY --from=builder /out/session-agent /app/session-agent
 
 ENV SESSION_AGENT_ADDR=:9000
 ENV SESSION_AGENT_AUTH_BYPASS=false
 
 EXPOSE 9000
 
-CMD ["/app/session-agent/bin/session-agent"]
+CMD ["/app/session-agent"]

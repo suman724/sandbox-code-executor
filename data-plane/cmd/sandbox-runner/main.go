@@ -67,9 +67,10 @@ func main() {
 		log.Fatalf("session runtime error: %v", err)
 	}
 	sessionHandler := runtime.SessionHandler{
-		Runtime:  sessionRuntime,
-		Registry: sessionRegistry,
-		Agent:    runtime.NewAgentClient(),
+		Runtime:     sessionRuntime,
+		Registry:    sessionRegistry,
+		Agent:       runtime.NewAgentClient(),
+		AgentPrefer: cfg.AgentPrefer,
 	}
 	apiHandler := runtime.RouterWithDependencies(runtime.Dependencies{
 		RunHandler:     runHandler,
@@ -149,17 +150,16 @@ func buildSessionRuntime(cfg config.Config) (runtime.SessionRuntime, error) {
 			return nil, err
 		}
 		return runtime.KubernetesSessionRuntime{
-			Client:         clientset,
-			Config:         restConfig,
-			Namespace:      cfg.RuntimeNamespace,
-			RuntimeClass:   cfg.RuntimeClass,
-			Image:          cfg.SessionImage,
-			PythonImage:    cfg.SessionImagePython,
-			NodeImage:      cfg.SessionImageNode,
-			Env:            cfg.Env,
-			AgentAddr:      getenv("SESSION_AGENT_ADDR", ":9000"),
-			AgentAuthMode:  cfg.AgentAuthMode,
-			AgentAuthToken: cfg.AgentAuthToken,
+			Client:        clientset,
+			Config:        restConfig,
+			Namespace:     cfg.RuntimeNamespace,
+			RuntimeClass:  cfg.RuntimeClass,
+			Image:         cfg.SessionImage,
+			PythonImage:   cfg.SessionImagePython,
+			NodeImage:     cfg.SessionImageNode,
+			Env:           cfg.Env,
+			AgentAddr:     getenv("SESSION_AGENT_ADDR", ":9000"),
+			AgentAuthMode: cfg.AgentAuthMode,
 		}, nil
 	default:
 		return runtime.NewLocalSessionRuntime(), nil

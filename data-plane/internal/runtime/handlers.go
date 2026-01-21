@@ -46,9 +46,10 @@ type RunStore interface {
 }
 
 type SessionHandler struct {
-	Runtime  SessionRuntime
-	Registry SessionRegistry
-	Agent    *AgentClient
+	Runtime     SessionRuntime
+	Registry    SessionRegistry
+	Agent       *AgentClient
+	AgentPrefer bool
 }
 
 type sessionRequest struct {
@@ -151,47 +152,44 @@ func (h SessionHandler) handleStep(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusNotFound)
 		return
 	}
-	output, err := h.Runtime.RunStep(r.Context(), route.RuntimeID, req.Command)
-	if err == nil {
-		log.Printf("sessions: route session_id=%s runtime_id=%s endpoint=%s auth_mode=%s step_id=%s status=completed", sessionID, route.RuntimeID, route.Endpoint, route.AuthMode, stepID)
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusAccepted)
-		_ = json.NewEncoder(w).Encode(sessionStepResponse{
-			Status: "accepted",
-			Stdout: output.Stdout,
-			Stderr: output.Stderr,
+	if h.Agent != nil && route.Endpoint != "" && h.AgentPrefer {
+		agentResult, agentErr := h.Agent.RunStep(r.Context(), AgentRoute{
+			Endpoint: route.Endpoint,
+			Token:    route.Token,
+			AuthMode: route.AuthMode,
+		}, sessionagent.StepRequest{
+			SessionID: sessionID,
+			StepID:    stepID,
+			Code:      req.Command,
+			Runtime:   req.Runtime,
 		})
-		return
+		if agentErr == nil {
+			log.Printf("sessions: route session_id=%s runtime_id=%s endpoint=%s auth_mode=%s step_id=%s status=%s", sessionID, route.RuntimeID, route.Endpoint, route.AuthMode, stepID, agentResult.Status)
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusAccepted)
+			_ = json.NewEncoder(w).Encode(sessionStepResponse{
+				Status: agentResult.Status,
+				Stdout: agentResult.Stdout,
+				Stderr: agentResult.Stderr,
+			})
+			return
+		}
+		log.Printf("sessions: agent step error: %v", agentErr)
 	}
-	if h.Agent == nil || route.Endpoint == "" {
+	output, err := h.Runtime.RunStep(r.Context(), route.RuntimeID, req.Command)
+	if err != nil {
 		log.Printf("sessions: route session_id=%s runtime_id=%s endpoint=%s auth_mode=%s step_id=%s status=failed", sessionID, route.RuntimeID, route.Endpoint, route.AuthMode, stepID)
 		log.Printf("sessions: step error: %v", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
-	agentResult, agentErr := h.Agent.RunStep(r.Context(), AgentRoute{
-		Endpoint: route.Endpoint,
-		Token:    route.Token,
-		AuthMode: route.AuthMode,
-	}, sessionagent.StepRequest{
-		SessionID: sessionID,
-		StepID:    stepID,
-		Code:      req.Command,
-		Runtime:   req.Runtime,
-	})
-	if agentErr != nil {
-		log.Printf("sessions: route session_id=%s runtime_id=%s endpoint=%s auth_mode=%s step_id=%s status=failed", sessionID, route.RuntimeID, route.Endpoint, route.AuthMode, stepID)
-		log.Printf("sessions: agent step error: %v", agentErr)
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-	log.Printf("sessions: route session_id=%s runtime_id=%s endpoint=%s auth_mode=%s step_id=%s status=%s", sessionID, route.RuntimeID, route.Endpoint, route.AuthMode, stepID, agentResult.Status)
+	log.Printf("sessions: route session_id=%s runtime_id=%s endpoint=%s auth_mode=%s step_id=%s status=completed", sessionID, route.RuntimeID, route.Endpoint, route.AuthMode, stepID)
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusAccepted)
 	_ = json.NewEncoder(w).Encode(sessionStepResponse{
-		Status: agentResult.Status,
-		Stdout: agentResult.Stdout,
-		Stderr: agentResult.Stderr,
+		Status: "accepted",
+		Stdout: output.Stdout,
+		Stderr: output.Stderr,
 	})
 }
 
@@ -209,6 +207,15 @@ func (h SessionHandler) handleTerminate(w http.ResponseWriter, r *http.Request) 
 	if !ok {
 		w.WriteHeader(http.StatusNotFound)
 		return
+	}
+	if h.Agent != nil && route.Endpoint != "" {
+		if err := h.Agent.TerminateSession(r.Context(), AgentRoute{
+			Endpoint: route.Endpoint,
+			Token:    route.Token,
+			AuthMode: route.AuthMode,
+		}, sessionID); err != nil {
+			log.Printf("sessions: terminate agent error: %v", err)
+		}
 	}
 	if err := h.Runtime.TerminateSession(r.Context(), route.RuntimeID); err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
