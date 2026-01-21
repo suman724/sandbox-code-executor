@@ -1,7 +1,7 @@
 FROM golang:1.23 AS build
 WORKDIR /src
 COPY data-plane/go.mod ./data-plane/
-COPY shared/go.mod shared/go.sum ./shared/
+COPY shared/go.mod ./shared/
 WORKDIR /src/data-plane
 ENV GOFLAGS="-mod=mod"
 RUN go mod download
