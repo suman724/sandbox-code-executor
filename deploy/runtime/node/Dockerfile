@@ -2,10 +2,12 @@ FROM golang:1.23 AS builder
 
 WORKDIR /src/session-agent
 
-COPY session-agent/go.mod ./
+COPY session-agent/go.mod session-agent/go.sum ./
+COPY shared/go.mod ./shared/
 RUN go mod download
 
 COPY session-agent/ ./
+COPY shared/ /src/shared/
 RUN CGO_ENABLED=0 go build -o /out/session-agent ./cmd/session-agent
 
 FROM node:20-slim
