@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net"
 	"os"
 	"os/exec"
 	"strings"
@@ -26,7 +27,11 @@ type sessionProcess struct {
 	stdout  *bufio.Reader
 	runtime string
 	repl    bool
-	mu     sync.Mutex
+	agentCmd      *exec.Cmd
+	agentEndpoint string
+	agentAuthMode string
+	agentAuthToken string
+	mu           sync.Mutex
 }
 
 const pythonReplScript = `import contextlib
@@ -138,12 +143,12 @@ func NewLocalSessionRuntime() *LocalSessionRuntime {
 	return &LocalSessionRuntime{processes: map[string]*sessionProcess{}}
 }
 
-func (r *LocalSessionRuntime) StartSession(ctx context.Context, sessionID string, policyID string, workspaceRef string, runtime string) (string, error) {
+func (r *LocalSessionRuntime) StartSession(ctx context.Context, sessionID string, policyID string, workspaceRef string, runtime string) (SessionRoute, error) {
 	_ = ctx
 	_ = policyID
 	_ = workspaceRef
 	if sessionID == "" {
-		return "", errors.New("missing session id")
+		return SessionRoute{}, errors.New("missing session id")
 	}
 	normalized := strings.ToLower(strings.TrimSpace(runtime))
 	cmd := exec.Command("sh")
@@ -157,12 +162,12 @@ func (r *LocalSessionRuntime) StartSession(ctx context.Context, sessionID string
 	}
 	stdin, err := cmd.StdinPipe()
 	if err != nil {
-		return "", err
+		return SessionRoute{}, err
 	}
 	stdoutPipe, err := cmd.StdoutPipe()
 	if err != nil {
 		_ = stdin.Close()
-		return "", err
+		return SessionRoute{}, err
 	}
 	if repl {
 		cmd.Stderr = os.Stderr
@@ -171,7 +176,13 @@ func (r *LocalSessionRuntime) StartSession(ctx context.Context, sessionID string
 	}
 	if err := cmd.Start(); err != nil {
 		_ = stdin.Close()
-		return "", err
+		return SessionRoute{}, err
+	}
+	agentEndpoint, agentMode, agentToken, agentCmd, err := launchSessionAgent(sessionID)
+	if err != nil {
+		_ = stdin.Close()
+		_ = cmd.Process.Kill()
+		return SessionRoute{}, err
 	}
 	r.mu.Lock()
 	r.processes[sessionID] = &sessionProcess{
@@ -180,9 +191,18 @@ func (r *LocalSessionRuntime) StartSession(ctx context.Context, sessionID string
 		stdout:  bufio.NewReader(stdoutPipe),
 		runtime: runtime,
 		repl:    repl,
+		agentCmd:      agentCmd,
+		agentEndpoint: agentEndpoint,
+		agentAuthMode: agentMode,
+		agentAuthToken: agentToken,
 	}
 	r.mu.Unlock()
-	return sessionID, nil
+	return SessionRoute{
+		RuntimeID: sessionID,
+		Endpoint:  agentEndpoint,
+		AuthMode:  agentMode,
+		Token:     agentToken,
+	}, nil
 }
 
 func (r *LocalSessionRuntime) RunStep(ctx context.Context, runtimeID string, command string) (StepOutput, error) {
@@ -240,6 +260,9 @@ func (r *LocalSessionRuntime) TerminateSession(ctx context.Context, runtimeID st
 	}
 	if process.cmd != nil && process.cmd.Process != nil {
 		_ = process.cmd.Process.Kill()
+	}
+	if process.agentCmd != nil && process.agentCmd.Process != nil {
+		_ = process.agentCmd.Process.Kill()
 	}
 	return nil
 }
@@ -315,4 +338,52 @@ func runStepRepl(process *sessionProcess, command string) (StepOutput, error) {
 		}
 	}
 	return StepOutput{Stdout: resp.Stdout, Stderr: stderr}, nil
+}
+
+func launchSessionAgent(sessionID string) (string, string, string, *exec.Cmd, error) {
+	if os.Getenv("SESSION_AGENT_LAUNCH") != "true" {
+		return os.Getenv("SESSION_AGENT_ENDPOINT"), getenv("SESSION_AGENT_AUTH_MODE", "bypass"), os.Getenv("SESSION_AGENT_AUTH_TOKEN"), nil, nil
+	}
+	addr := os.Getenv("SESSION_AGENT_ADDR")
+	if addr == "" {
+		listener, err := net.Listen("tcp", "127.0.0.1:0")
+		if err != nil {
+			return "", "", "", nil, err
+		}
+		addr = listener.Addr().String()
+		_ = listener.Close()
+	}
+	authMode := getenv("SESSION_AGENT_AUTH_MODE", "bypass")
+	authToken := os.Getenv("SESSION_AGENT_AUTH_TOKEN")
+	if authMode == "enforced" && authToken == "" {
+		return "", "", "", nil, errors.New("SESSION_AGENT_AUTH_TOKEN is required when auth mode is enforced")
+	}
+	bin := getenv("SESSION_AGENT_BIN", "session-agent")
+	cmd := exec.Command(bin)
+	cmd.Env = append(os.Environ(),
+		"ENV="+getenv("ENV", "dev"),
+		"SESSION_AGENT_ADDR="+addr,
+		"SESSION_AGENT_AUTH_BYPASS="+boolToString(authMode == "bypass"),
+		"SESSION_AGENT_AUTH_TOKEN="+authToken,
+		"SESSION_ID="+sessionID,
+	)
+	if err := cmd.Start(); err != nil {
+		return "", "", "", nil, err
+	}
+	endpoint := "http://" + addr
+	return endpoint, authMode, authToken, cmd, nil
+}
+
+func boolToString(value bool) string {
+	if value {
+		return "true"
+	}
+	return "false"
+}
+
+func getenv(key string, fallback string) string {
+	if value := os.Getenv(key); value != "" {
+		return value
+	}
+	return fallback
 }

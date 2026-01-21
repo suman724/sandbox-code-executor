@@ -69,6 +69,7 @@ func main() {
 	sessionHandler := runtime.SessionHandler{
 		Runtime:  sessionRuntime,
 		Registry: sessionRegistry,
+		Agent:    runtime.NewAgentClient(),
 	}
 	apiHandler := runtime.RouterWithDependencies(runtime.Dependencies{
 		RunHandler:     runHandler,
@@ -148,11 +149,17 @@ func buildSessionRuntime(cfg config.Config) (runtime.SessionRuntime, error) {
 			return nil, err
 		}
 		return runtime.KubernetesSessionRuntime{
-			Client:       clientset,
-			Config:       restConfig,
-			Namespace:    cfg.RuntimeNamespace,
-			RuntimeClass: cfg.RuntimeClass,
-			Image:        cfg.SessionImage,
+			Client:         clientset,
+			Config:         restConfig,
+			Namespace:      cfg.RuntimeNamespace,
+			RuntimeClass:   cfg.RuntimeClass,
+			Image:          cfg.SessionImage,
+			PythonImage:    cfg.SessionImagePython,
+			NodeImage:      cfg.SessionImageNode,
+			Env:            cfg.Env,
+			AgentAddr:      getenv("SESSION_AGENT_ADDR", ":9000"),
+			AgentAuthMode:  cfg.AgentAuthMode,
+			AgentAuthToken: cfg.AgentAuthToken,
 		}, nil
 	default:
 		return runtime.NewLocalSessionRuntime(), nil

@@ -53,7 +53,7 @@ func TestSessionRunnerLocal(t *testing.T) {
 	}
 	_ = resp.Body.Close()
 
-	stepBody, err := json.Marshal(map[string]string{"command": "import sys\nprint('out')\nprint('err', file=sys.stderr)"})
+	stepBody, err := json.Marshal(map[string]string{"command": "import sys\nprint('out')\nprint('err', file=sys.stderr)", "runtime": "python"})
 	if err != nil {
 		t.Fatalf("marshal step payload: %v", err)
 	}
@@ -79,7 +79,7 @@ func TestSessionRunnerLocal(t *testing.T) {
 	}
 	_ = resp.Body.Close()
 
-	stepBody, err = json.Marshal(map[string]string{"command": "x = 41\nprint('set')"})
+	stepBody, err = json.Marshal(map[string]string{"command": "x = 41\nprint('set')", "runtime": "python"})
 	if err != nil {
 		t.Fatalf("marshal step payload: %v", err)
 	}
@@ -92,7 +92,7 @@ func TestSessionRunnerLocal(t *testing.T) {
 	}
 	resp.Body.Close()
 
-	stepBody, err = json.Marshal(map[string]string{"command": "print(x + 1)"})
+	stepBody, err = json.Marshal(map[string]string{"command": "print(x + 1)", "runtime": "python"})
 	if err != nil {
 		t.Fatalf("marshal step payload: %v", err)
 	}

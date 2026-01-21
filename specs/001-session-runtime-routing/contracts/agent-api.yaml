@@ -1,0 +1,83 @@
+openapi: 3.0.3
+info:
+  title: Session Agent API
+  version: 1.0.0
+  description: Internal API for executing steps within a session runtime.
+servers:
+  - url: http://{agentHost}:{agentPort}
+    variables:
+      agentHost:
+        default: 127.0.0.1
+      agentPort:
+        default: "9000"
+paths:
+  /v1/health:
+    get:
+      summary: Health check
+      responses:
+        "200":
+          description: Agent is healthy
+  /v1/steps:
+    post:
+      summary: Execute a step in a session runtime
+      security:
+        - SessionToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/StepRequest"
+      responses:
+        "200":
+          description: Step executed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StepResult"
+        "401":
+          description: Unauthorized
+        "404":
+          description: Session not found
+components:
+  securitySchemes:
+    SessionToken:
+      type: apiKey
+      in: header
+      name: X-Session-Token
+      description: Required in production. Optional when auth mode is explicitly set to bypass for non-production.
+  schemas:
+    StepRequest:
+      type: object
+      required:
+        - sessionId
+        - stepId
+        - code
+      properties:
+        sessionId:
+          type: string
+        stepId:
+          type: string
+        code:
+          type: string
+        runtime:
+          type: string
+    StepResult:
+      type: object
+      required:
+        - stepId
+        - status
+        - stdout
+        - stderr
+      properties:
+        stepId:
+          type: string
+        status:
+          type: string
+          enum: [completed, failed]
+        exitCode:
+          type: integer
+        stdout:
+          type: string
+        stderr:
+          type: string

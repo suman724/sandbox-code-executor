@@ -8,6 +8,7 @@ Detailed design: see `architecture/sandbox-executor.md`.
 
 - `control-plane/`: API gateway, auth, policy, orchestration, audit, MCP server
 - `data-plane/`: sandbox runtime, execution runner, isolation, workspace, telemetry
+- `session-agent/`: in-pod session agent for step execution
 - `shared/`: shared types and error contracts
 - `deploy/`: Kubernetes manifests and Helm charts
 - `specs/`: feature specs, plans, tasks, and contracts
@@ -23,9 +24,13 @@ Detailed design: see `architecture/sandbox-executor.md`.
   - MCP tool interface
 - Data plane owns:
   - Sandbox provisioning and execution
+  - Session routing to per-session runtime agents
   - Resource limits and network egress enforcement
   - Workspace lifecycle and artifact capture
   - Log/event streaming
+ - Session agent owns:
+  - Step execution within a session runtime
+  - Stdout/stderr capture and response formatting
 
 ## High-level architecture
 
@@ -85,10 +90,11 @@ flowchart TB
     ISOLATION[Isolation + Limits]
     WORKSPACE[Workspace + Artifacts]
     RUNNER[Execution Runner]
+    AGENT[Session Agent]
     STREAM[Log/Event Streaming]
   end
 
-  ROUTER --> RUNNER
+  ROUTER --> RUNNER --> AGENT
   RUNNER --> ISOLATION
   RUNNER --> WORKSPACE
   RUNNER --> STREAM
@@ -106,6 +112,7 @@ flowchart TB
 ```bash
 make build-control-plane
 make build-data-plane
+make build-session-agent
 ```
 
 ### Run tests
@@ -119,6 +126,17 @@ make test
 ```bash
 ENV=dev DATA_PLANE_URL=http://localhost:8081 make run-control-plane
 ENV=dev make run-data-plane
+ENV=dev SESSION_AGENT_AUTH_BYPASS=true make run-session-agent
+```
+
+### Local testing (session-agent)
+
+```bash
+curl -s http://localhost:9000/v1/health
+
+curl -s -X POST http://localhost:9000/v1/steps \
+  -H 'Content-Type: application/json' \
+  -d '{"sessionId":"session-1","stepId":"step-1","code":"print(\"hello\")"}'
 ```
 
 ### Docker images
@@ -126,6 +144,8 @@ ENV=dev make run-data-plane
 ```bash
 docker build -f control-plane/Dockerfile -t control-plane:dev .
 docker build -f data-plane/Dockerfile -t data-plane:dev .
+docker build -f deploy/runtime/python/Dockerfile -t runtime-python:dev .
+docker build -f deploy/runtime/node/Dockerfile -t runtime-node:dev .
 ```
 
 ## Configuration notes
@@ -141,8 +161,14 @@ Common environment variables:
   - `SESSION_RUNTIME_BACKEND` (`local` or `k8s`)
   - `SESSION_REGISTRY_BACKEND` (`memory` or `file`) and `SESSION_REGISTRY_PATH` (file backend)
   - `SESSION_RUNTIME_IMAGE` (fallback image for session pods)
+  - `SESSION_RUNTIME_IMAGE_PYTHON`, `SESSION_RUNTIME_IMAGE_NODE`
+  - `SESSION_AGENT_ENDPOINT`, `SESSION_AGENT_AUTH_MODE`, `SESSION_AGENT_AUTH_TOKEN`
   - `AUTH_JWT_SECRET`, `AUTH_ISSUER`, `AUTH_AUDIENCE`
   - `AUTHZ_BYPASS` (non-production only)
+- Session agent:
+  - `ENV`, `SESSION_AGENT_ADDR`
+  - `SESSION_AGENT_AUTH_BYPASS` (non-production only)
+  - `SESSION_AGENT_AUTH_TOKEN` (required when bypass is false)
 
 SQLite can be used for non-production testing by setting:
 
@@ -163,6 +189,25 @@ MCP endpoints:
 Session notes:
 - `POST /sessions` accepts an optional `runtime` (for example `python` or `node`).
 - Step responses include `stdout` and `stderr` output payloads.
+
+Local data-plane example (routing to a locally running session-agent):
+
+```bash
+SESSION_AGENT_ENDPOINT=http://localhost:9000 \
+SESSION_AGENT_AUTH_MODE=bypass \
+ENV=dev SESSION_RUNTIME_BACKEND=local make run-data-plane
+```
+
+### Kubernetes testing
+
+1. Build and push runtime images with the session-agent:
+   - `deploy/runtime/python/Dockerfile`
+   - `deploy/runtime/node/Dockerfile`
+2. Set data-plane envs:
+   - `SESSION_RUNTIME_IMAGE_PYTHON`, `SESSION_RUNTIME_IMAGE_NODE`
+   - `SESSION_AGENT_AUTH_MODE=enforced`
+   - `SESSION_AGENT_AUTH_TOKEN` (shared secret)
+3. Deploy control-plane and data-plane, then create a session via control-plane and submit steps.
 
 ## Additional documentation
 

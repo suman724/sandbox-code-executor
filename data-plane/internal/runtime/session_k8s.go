@@ -1,18 +1,14 @@
 package runtime
 
 import (
-	"bytes"
 	"context"
 	"errors"
 	"fmt"
-	"strings"
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
-	"k8s.io/client-go/tools/remotecommand"
 )
 
 type KubernetesSessionRuntime struct {
@@ -21,22 +17,43 @@ type KubernetesSessionRuntime struct {
 	Namespace    string
 	RuntimeClass string
 	Image        string
+	PythonImage  string
+	NodeImage    string
+	Env          string
+	AgentAddr    string
+	AgentAuthMode  string
+	AgentAuthToken string
 }
 
-func (r KubernetesSessionRuntime) StartSession(ctx context.Context, sessionID string, policyID string, workspaceRef string, runtime string) (string, error) {
+func (r KubernetesSessionRuntime) StartSession(ctx context.Context, sessionID string, policyID string, workspaceRef string, runtime string) (SessionRoute, error) {
 	_ = policyID
 	_ = workspaceRef
 	if r.Client == nil {
-		return "", errors.New("missing kubernetes client")
+		return SessionRoute{}, errors.New("missing kubernetes client")
 	}
 	if sessionID == "" {
-		return "", errors.New("missing session id")
+		return SessionRoute{}, errors.New("missing session id")
 	}
 	if r.Namespace == "" {
 		r.Namespace = "default"
 	}
-	image := imageForRuntime(runtime, r.Image)
+	image := imageForRuntime(runtime, r.PythonImage, r.NodeImage, r.Image)
 	podName := fmt.Sprintf("session-%s", sessionID)
+	envVars := []corev1.EnvVar{}
+	if r.Env != "" {
+		envVars = append(envVars, corev1.EnvVar{Name: "ENV", Value: r.Env})
+	}
+	if r.AgentAddr != "" {
+		envVars = append(envVars, corev1.EnvVar{Name: "SESSION_AGENT_ADDR", Value: r.AgentAddr})
+	}
+	if r.AgentAuthMode == "bypass" {
+		envVars = append(envVars, corev1.EnvVar{Name: "SESSION_AGENT_AUTH_BYPASS", Value: "true"})
+	} else {
+		envVars = append(envVars, corev1.EnvVar{Name: "SESSION_AGENT_AUTH_BYPASS", Value: "false"})
+		if r.AgentAuthToken != "" {
+			envVars = append(envVars, corev1.EnvVar{Name: "SESSION_AGENT_AUTH_TOKEN", Value: r.AgentAuthToken})
+		}
+	}
 	pod := &corev1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      podName,
@@ -52,63 +69,29 @@ func (r KubernetesSessionRuntime) StartSession(ctx context.Context, sessionID st
 				{
 					Name:    "session",
 					Image:   image,
-					Command: []string{"sh", "-c", "sleep 3600"},
+					Env:     envVars,
 				},
 			},
 			RestartPolicy: corev1.RestartPolicyNever,
 		},
 	}
 	if _, err := r.Client.CoreV1().Pods(r.Namespace).Create(ctx, pod, metav1.CreateOptions{}); err != nil {
-		return "", err
+		return SessionRoute{}, err
 	}
-	return podName, nil
+	endpoint := r.buildAgentEndpoint(ctx, podName)
+	return SessionRoute{
+		RuntimeID: podName,
+		Endpoint:  endpoint,
+		Token:     r.AgentAuthToken,
+		AuthMode:  r.AgentAuthMode,
+	}, nil
 }
 
 func (r KubernetesSessionRuntime) RunStep(ctx context.Context, runtimeID string, command string) (StepOutput, error) {
-	if r.Client == nil {
-		return StepOutput{}, errors.New("missing kubernetes client")
-	}
-	if r.Config == nil {
-		return StepOutput{}, errors.New("missing kubernetes config")
-	}
-	if runtimeID == "" {
-		return StepOutput{}, errors.New("missing runtime id")
-	}
-	if command == "" {
-		return StepOutput{}, errors.New("missing command")
-	}
-	namespace := r.Namespace
-	if namespace == "" {
-		namespace = "default"
-	}
-	req := r.Client.CoreV1().RESTClient().Post().
-		Resource("pods").
-		Name(runtimeID).
-		Namespace(namespace).
-		SubResource("exec").
-		VersionedParams(&corev1.PodExecOptions{
-			Container: "session",
-			Command:   []string{"sh", "-c", command},
-			Stdout:    true,
-			Stderr:    true,
-		}, scheme.ParameterCodec)
-	executor, err := remotecommand.NewSPDYExecutor(r.Config, "POST", req.URL())
-	if err != nil {
-		return StepOutput{}, err
-	}
-	var stdout bytes.Buffer
-	var stderr bytes.Buffer
-	if err := executor.StreamWithContext(ctx, remotecommand.StreamOptions{
-		Stdout: &stdout,
-		Stderr: &stderr,
-	}); err != nil {
-		msg := strings.TrimSpace(stderr.String())
-		if msg != "" {
-			return StepOutput{}, fmt.Errorf("kubernetes exec error: %w: %s", err, msg)
-		}
-		return StepOutput{}, fmt.Errorf("kubernetes exec error: %w", err)
-	}
-	return StepOutput{Stdout: stdout.String(), Stderr: stderr.String()}, nil
+	_ = ctx
+	_ = runtimeID
+	_ = command
+	return StepOutput{}, errors.New("kubernetes exec is disabled; use session-agent endpoint")
 }
 
 func (r KubernetesSessionRuntime) TerminateSession(ctx context.Context, runtimeID string) error {
@@ -135,16 +118,40 @@ func runtimeClassName(value string) *string {
 	return &value
 }
 
-func imageForRuntime(runtime string, fallback string) string {
+func imageForRuntime(runtime string, pythonImage string, nodeImage string, fallback string) string {
+	switch runtime {
+	case "python":
+		if pythonImage != "" {
+			return pythonImage
+		}
+	case "node":
+		if nodeImage != "" {
+			return nodeImage
+		}
+	}
+	if fallback != "" {
+		return fallback
+	}
 	switch runtime {
 	case "python":
 		return "python:3.12-slim"
 	case "node":
 		return "node:20-alpine"
 	default:
-		if fallback != "" {
-			return fallback
-		}
 		return "busybox:1.36"
 	}
+}
+
+func (r KubernetesSessionRuntime) buildAgentEndpoint(ctx context.Context, podName string) string {
+	namespace := r.Namespace
+	if namespace == "" {
+		namespace = "default"
+	}
+	if r.Client != nil {
+		pod, err := r.Client.CoreV1().Pods(namespace).Get(ctx, podName, metav1.GetOptions{})
+		if err == nil && pod.Status.PodIP != "" {
+			return "http://" + pod.Status.PodIP + ":9000"
+		}
+	}
+	return fmt.Sprintf("http://%s.%s.pod:9000", podName, namespace)
 }

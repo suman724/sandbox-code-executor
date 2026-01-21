@@ -6,6 +6,7 @@ require (
 	github.com/go-chi/chi/v5 v5.1.0
 	github.com/golang-jwt/jwt/v5 v5.2.1
 	github.com/prometheus/client_golang v1.19.1
+	shared v0.0.0
 	go.opentelemetry.io/otel v1.28.0
 	go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc v1.28.0
 	go.opentelemetry.io/otel/exporters/prometheus v0.49.0
@@ -13,6 +14,8 @@ require (
 	go.opentelemetry.io/otel/sdk v1.28.0
 	go.opentelemetry.io/otel/sdk/metric v1.27.0
 )
+
+replace shared => ../shared
 
 require (
 	github.com/beorn7/perks v1.0.1 // indirect

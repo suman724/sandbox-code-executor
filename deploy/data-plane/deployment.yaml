@@ -17,3 +17,12 @@ spec:
           image: data-plane:latest
           ports:
             - containerPort: 8081
+          env:
+            - name: SESSION_RUNTIME_IMAGE
+              value: runtime-base:latest
+            - name: SESSION_RUNTIME_IMAGE_PYTHON
+              value: runtime-python:latest
+            - name: SESSION_RUNTIME_IMAGE_NODE
+              value: runtime-node:latest
+            - name: SESSION_AGENT_AUTH_MODE
+              value: enforced
