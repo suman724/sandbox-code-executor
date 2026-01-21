@@ -138,6 +138,12 @@ description: "Task list for session runtime routing"
 - [X] T056 [P] Verify and update build/run targets for session-agent and runtime images in `Makefile`
 - [X] T057 [P] Update runtime Dockerfiles for session-agent packaging in `deploy/runtime/python/Dockerfile` and `deploy/runtime/node/Dockerfile`
 - [X] T058 [P] Update GitHub Actions workflows for runtime image builds and session-agent changes in `.github/workflows`
+- [X] T059 Add retry with exponential backoff and `runtime_unreachable` error payload for agent step calls in `data-plane/internal/runtime/agent_client.go` and `data-plane/internal/runtime/handlers.go`
+- [X] T060 Validate session runtime identity before routing steps and return a deterministic error on mismatch in `data-plane/internal/runtime/handlers.go` and `data-plane/internal/runtime/session_registry.go`
+- [X] T061 Enforce header/body token consistency for session registration in `session-agent/internal/api/handlers/sessions.go` and `session-agent/internal/api/middleware/auth.go`
+- [X] T062 Add explicit errors for expired sessions/runtime crashes in `data-plane/internal/runtime/handlers.go` and `data-plane/internal/runtime/session_registry.go`
+- [X] T063 Cleanup k8s pod on readiness/health timeout in `data-plane/internal/runtime/session_k8s.go`
+- [X] T064 Reject re-registering a session with a different runtime in `session-agent/internal/runtime/runner.go`
 
 ---
 

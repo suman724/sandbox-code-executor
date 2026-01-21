@@ -10,6 +10,7 @@ func TestSessionRegistryStoresRoute(t *testing.T) {
 	registry := runtime.NewInMemorySessionRegistry()
 	route := runtime.SessionRoute{
 		RuntimeID: "runtime-1",
+		Runtime:   "python",
 		Endpoint:  "http://localhost:9000",
 		Token:     "token",
 		AuthMode:  "bypass",

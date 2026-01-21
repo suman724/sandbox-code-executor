@@ -10,6 +10,7 @@ import (
 
 type SessionRoute struct {
 	RuntimeID string `json:"runtimeId"`
+	Runtime   string `json:"runtime"`
 	Endpoint  string `json:"endpoint"`
 	Token     string `json:"token"`
 	AuthMode  string `json:"authMode"`
@@ -31,7 +32,7 @@ func NewInMemorySessionRegistry() *InMemorySessionRegistry {
 }
 
 func (r *InMemorySessionRegistry) Put(sessionID string, route SessionRoute) error {
-	if sessionID == "" || route.RuntimeID == "" {
+	if sessionID == "" || route.RuntimeID == "" || route.Runtime == "" {
 		return errors.New("missing session or runtime id")
 	}
 	r.mu.Lock()
@@ -74,7 +75,7 @@ func NewFileSessionRegistry(path string) (*FileSessionRegistry, error) {
 }
 
 func (r *FileSessionRegistry) Put(sessionID string, route SessionRoute) error {
-	if sessionID == "" || route.RuntimeID == "" {
+	if sessionID == "" || route.RuntimeID == "" || route.Runtime == "" {
 		return errors.New("missing session or runtime id")
 	}
 	r.mu.Lock()

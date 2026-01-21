@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
@@ -34,14 +35,22 @@ func (h SessionHandler) Register(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
+	headerToken := middleware.TokenFromRequest(r)
 	if req.Token == "" {
-		req.Token = middleware.TokenFromRequest(r)
+		req.Token = headerToken
+	} else if headerToken != "" && req.Token != headerToken {
+		http.Error(w, "session token mismatch", http.StatusBadRequest)
+		return
 	}
 	if h.RequireToken && req.Token == "" {
 		http.Error(w, "missing session token", http.StatusUnauthorized)
 		return
 	}
 	if _, err := h.Runner.RegisterSession(req); err != nil {
+		if errors.Is(err, runtime.ErrSessionRuntimeMismatch) {
+			http.Error(w, "session runtime mismatch", http.StatusConflict)
+			return
+		}
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}

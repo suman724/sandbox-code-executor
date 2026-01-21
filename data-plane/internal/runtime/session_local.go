@@ -230,6 +230,7 @@ func (r *LocalSessionRuntime) StartSession(ctx context.Context, sessionID string
 	r.mu.Unlock()
 	return SessionRoute{
 		RuntimeID: sessionID,
+		Runtime:   runtime,
 		Endpoint:  agentEndpoint,
 		AuthMode:  agentMode,
 		Token:     token,
@@ -248,7 +249,7 @@ func (r *LocalSessionRuntime) RunStep(ctx context.Context, runtimeID string, com
 	process, ok := r.processes[runtimeID]
 	r.mu.RUnlock()
 	if !ok {
-		return StepOutput{}, errors.New("runtime not found")
+		return StepOutput{}, ErrRuntimeNotFound
 	}
 	process.mu.Lock()
 	defer process.mu.Unlock()
@@ -284,7 +285,7 @@ func (r *LocalSessionRuntime) TerminateSession(ctx context.Context, runtimeID st
 	}
 	r.mu.Unlock()
 	if !ok {
-		return errors.New("runtime not found")
+		return ErrRuntimeNotFound
 	}
 	if process.stdin != nil {
 		_ = process.stdin.Close()

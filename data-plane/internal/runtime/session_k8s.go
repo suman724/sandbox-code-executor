@@ -97,15 +97,29 @@ func (r KubernetesSessionRuntime) StartSession(ctx context.Context, sessionID st
 	if _, err := r.Client.CoreV1().Pods(r.Namespace).Create(ctx, pod, metav1.CreateOptions{}); err != nil {
 		return SessionRoute{}, err
 	}
+	cleanupPod := func() {
+		namespace := r.Namespace
+		if namespace == "" {
+			namespace = "default"
+		}
+		grace := int64(0)
+		cleanupCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+		_ = r.Client.CoreV1().Pods(namespace).Delete(cleanupCtx, podName, metav1.DeleteOptions{
+			GracePeriodSeconds: &grace,
+		})
+	}
 	timeout := durationFromEnv("SESSION_READY_TIMEOUT", 60*time.Second)
 	readyCtx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 	if err := r.WaitForPodReady(readyCtx, podName); err != nil {
+		cleanupPod()
 		return SessionRoute{}, err
 	}
 	endpoint := r.buildAgentEndpoint(ctx, podName)
 	client := NewAgentClient()
 	if err := client.WaitForHealth(readyCtx, endpoint, 500*time.Millisecond); err != nil {
+		cleanupPod()
 		return SessionRoute{}, err
 	}
 	token := ""
@@ -122,10 +136,12 @@ func (r KubernetesSessionRuntime) StartSession(ctx context.Context, sessionID st
 		Token:        token,
 		WorkspaceDir: workspaceDir,
 	}); err != nil {
+		cleanupPod()
 		return SessionRoute{}, err
 	}
 	return SessionRoute{
 		RuntimeID: podName,
+		Runtime:   runtime,
 		Endpoint:  endpoint,
 		Token:     token,
 		AuthMode:  r.AgentAuthMode,
@@ -136,7 +152,7 @@ func (r KubernetesSessionRuntime) RunStep(ctx context.Context, runtimeID string,
 	_ = ctx
 	_ = runtimeID
 	_ = command
-	return StepOutput{}, errors.New("kubernetes exec is disabled; use session-agent endpoint")
+	return StepOutput{}, ErrRuntimeUnavailable
 }
 
 func (r KubernetesSessionRuntime) TerminateSession(ctx context.Context, runtimeID string) error {

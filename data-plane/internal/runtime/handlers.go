@@ -3,6 +3,7 @@ package runtime
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"log"
 	"net/http"
 	"strings"
@@ -74,6 +75,11 @@ type sessionStepResponse struct {
 	Status string `json:"status"`
 	Stdout string `json:"stdout"`
 	Stderr string `json:"stderr"`
+}
+
+type errorResponse struct {
+	Error   string `json:"error"`
+	Message string `json:"message"`
 }
 
 func (h SessionHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -149,7 +155,11 @@ func (h SessionHandler) handleStep(w http.ResponseWriter, r *http.Request) {
 	stepID := "step-" + time.Now().UTC().Format("20060102150405.000")
 	route, ok := h.Registry.Get(sessionID)
 	if !ok {
-		w.WriteHeader(http.StatusNotFound)
+		writeJSONError(w, http.StatusGone, "session_expired", "session not found")
+		return
+	}
+	if !strings.EqualFold(route.Runtime, req.Runtime) {
+		writeJSONError(w, http.StatusConflict, "runtime_mismatch", "session runtime does not match requested runtime")
 		return
 	}
 	if h.Agent != nil && route.Endpoint != "" && h.AgentPrefer {
@@ -174,10 +184,24 @@ func (h SessionHandler) handleStep(w http.ResponseWriter, r *http.Request) {
 			})
 			return
 		}
+		var unreachable runtimeUnreachableError
+		if errors.As(agentErr, &unreachable) {
+			log.Printf("sessions: agent step unreachable: %v", agentErr)
+			writeJSONError(w, http.StatusServiceUnavailable, "runtime_unreachable", "runtime agent is not reachable")
+			return
+		}
 		log.Printf("sessions: agent step error: %v", agentErr)
 	}
 	output, err := h.Runtime.RunStep(r.Context(), route.RuntimeID, req.Command)
 	if err != nil {
+		if errors.Is(err, ErrRuntimeNotFound) {
+			writeJSONError(w, http.StatusServiceUnavailable, "runtime_crashed", "session runtime is not available")
+			return
+		}
+		if errors.Is(err, ErrRuntimeUnavailable) {
+			writeJSONError(w, http.StatusServiceUnavailable, "runtime_unreachable", "runtime agent is not reachable")
+			return
+		}
 		log.Printf("sessions: route session_id=%s runtime_id=%s endpoint=%s auth_mode=%s step_id=%s status=failed", sessionID, route.RuntimeID, route.Endpoint, route.AuthMode, stepID)
 		log.Printf("sessions: step error: %v", err)
 		w.WriteHeader(http.StatusInternalServerError)
@@ -190,6 +214,15 @@ func (h SessionHandler) handleStep(w http.ResponseWriter, r *http.Request) {
 		Status: "accepted",
 		Stdout: output.Stdout,
 		Stderr: output.Stderr,
+	})
+}
+
+func writeJSONError(w http.ResponseWriter, status int, code string, message string) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(status)
+	_ = json.NewEncoder(w).Encode(errorResponse{
+		Error:   code,
+		Message: message,
 	})
 }
 

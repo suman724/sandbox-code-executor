@@ -1,6 +1,7 @@
 package unit
 
 import (
+	"errors"
 	"testing"
 
 	"session-agent/internal/runtime"
@@ -23,12 +24,14 @@ func TestRunnerEnsureSessionReusesState(t *testing.T) {
 		Runtime:   "node",
 		Token:     "token-2",
 	})
-	if err != nil {
-		t.Fatalf("register session again: %v", err)
+	if err == nil {
+		t.Fatalf("expected runtime mismatch error")
 	}
-
-	if first != second {
-		t.Fatalf("expected same session instance")
+	if !errors.Is(err, runtime.ErrSessionRuntimeMismatch) {
+		t.Fatalf("expected runtime mismatch error, got %v", err)
+	}
+	if second != nil {
+		t.Fatalf("expected no session returned on mismatch")
 	}
 	if first.Runtime != "python" {
 		t.Fatalf("expected runtime to remain python, got %q", first.Runtime)

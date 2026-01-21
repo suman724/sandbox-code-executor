@@ -36,6 +36,10 @@ func (r *Runner) RegisterSession(req sessionagent.SessionRegisterRequest) (*Sess
 
 	r.mu.Lock()
 	if session, ok := r.sessions[req.SessionID]; ok {
+		if !strings.EqualFold(session.Runtime, req.Runtime) {
+			r.mu.Unlock()
+			return nil, ErrSessionRuntimeMismatch
+		}
 		if req.Token != "" {
 			session.Token = req.Token
 		}
