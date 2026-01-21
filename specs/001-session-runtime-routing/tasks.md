@@ -54,7 +54,7 @@ description: "Task list for session runtime routing"
 - [X] T020 [P] [US1] Unit test for runner state persistence in `session-agent/tests/unit/runner_test.go`
 - [X] T021 [P] [US1] Integration test for session step persistence in `data-plane/tests/integration/session_agent_local_test.go`
 - [X] T022 [P] [US1] Contract test for agent API in `session-agent/tests/contract/agent_api_test.go`
-- [ ] T042 [P] [US1] Integration test for file-based workspace persistence in `data-plane/tests/integration/session_workspace_persistence_test.go`
+- [X] T042 [P] [US1] Integration test for file-based workspace persistence in `data-plane/tests/integration/session_workspace_persistence_test.go`
 
 ### Implementation for User Story 1
 
@@ -108,8 +108,8 @@ description: "Task list for session runtime routing"
 - [X] T037 [P] Update documentation for session-agent usage in `README.md`
 - [X] T038 [P] Update data-plane deployment notes for runtime images in `deploy/data-plane/deployment.yaml`
 - [X] T039 [P] Validate quickstart steps in `specs/001-session-runtime-routing/quickstart.md`
-- [ ] T040 [P] Add concurrency validation for multi-step sessions in `data-plane/tests/integration/session_concurrency_test.go`
-- [ ] T041 [P] Add cross-session isolation validation in `data-plane/tests/integration/session_isolation_test.go`
+- [X] T040 [P] Add concurrency validation for multi-step sessions in `data-plane/tests/integration/session_concurrency_test.go`
+- [X] T041 [P] Add cross-session isolation validation in `data-plane/tests/integration/session_isolation_test.go`
 
 ---
 
