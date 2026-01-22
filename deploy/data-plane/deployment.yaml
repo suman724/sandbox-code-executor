@@ -14,15 +14,15 @@ spec:
     spec:
       containers:
         - name: data-plane
-          image: data-plane:latest
+          image: sandbox-executor-data-plane:dev
           ports:
             - containerPort: 8081
           env:
             - name: SESSION_RUNTIME_IMAGE
-              value: runtime-base:latest
+              value: runtime-python:dev
             - name: SESSION_RUNTIME_IMAGE_PYTHON
-              value: runtime-python:latest
+              value: runtime-python:dev
             - name: SESSION_RUNTIME_IMAGE_NODE
-              value: runtime-node:latest
+              value: runtime-node:dev
             - name: SESSION_AGENT_AUTH_MODE
               value: enforced

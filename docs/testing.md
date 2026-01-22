@@ -10,6 +10,13 @@ This guide provides step-by-step commands and helper scripts to test the control
 
 ## Local Testing
 
+### 0) Build control-plane and data-plane Docker images (optional)
+
+```sh
+docker build -f control-plane/Dockerfile -t sandbox-executor-control-plane:dev .
+docker build -f data-plane/Dockerfile -t sandbox-executor-data-plane:dev .
+```
+
 ### 1) Start all services
 
 Use the Makefile targets to run the stack locally:
@@ -65,7 +72,16 @@ docker push <registry>/runtime-python:dev
 docker push <registry>/runtime-node:dev
 ```
 
-### 2) Deploy control-plane and data-plane
+### 2) Build and push control-plane and data-plane images
+
+```sh
+docker build -f control-plane/Dockerfile -t <registry>/sandbox-executor-control-plane:dev .
+docker build -f data-plane/Dockerfile -t <registry>/sandbox-executor-data-plane:dev .
+docker push <registry>/sandbox-executor-control-plane:dev
+docker push <registry>/sandbox-executor-data-plane:dev
+```
+
+### 3) Deploy control-plane and data-plane
 
 Use the manifests or Helm charts under `deploy/`:
 
@@ -75,7 +91,7 @@ kubectl apply -f deploy/control-plane
 kubectl apply -f deploy/data-plane
 ```
 
-### 3) Configure data-plane for Kubernetes sessions
+### 4) Configure data-plane for Kubernetes sessions
 
 Ensure these env vars are set on the data-plane deployment:
 
@@ -87,7 +103,7 @@ Ensure these env vars are set on the data-plane deployment:
 - `RUNTIME_PYTHON_IMAGE=<registry>/runtime-python:dev`
 - `RUNTIME_NODE_IMAGE=<registry>/runtime-node:dev`
 
-### 4) Port-forward services
+### 5) Port-forward services
 
 Expose control-plane and data-plane locally:
 
@@ -96,13 +112,13 @@ kubectl -n <namespace> port-forward svc/<control-plane-service> 8080:8080
 kubectl -n <namespace> port-forward svc/<data-plane-service> 8081:8081
 ```
 
-### 5) Run the session flow script
+### 6) Run the session flow script
 
 ```sh
 BASE_URL=http://localhost:8080 RUNTIME=python bash scripts/run-session-step.sh
 ```
 
-### 6) Kubernetes test helper script
+### 7) Kubernetes test helper script
 
 This script port-forwards the services and runs the session flow:
 
