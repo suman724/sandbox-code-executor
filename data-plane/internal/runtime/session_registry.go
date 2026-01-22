@@ -8,36 +8,44 @@ import (
 	"sync"
 )
 
+type SessionRoute struct {
+	RuntimeID string `json:"runtimeId"`
+	Runtime   string `json:"runtime"`
+	Endpoint  string `json:"endpoint"`
+	Token     string `json:"token"`
+	AuthMode  string `json:"authMode"`
+}
+
 type SessionRegistry interface {
-	Put(sessionID string, runtimeID string) error
-	Get(sessionID string) (string, bool)
+	Put(sessionID string, route SessionRoute) error
+	Get(sessionID string) (SessionRoute, bool)
 	Delete(sessionID string)
 }
 
 type InMemorySessionRegistry struct {
 	mu    sync.RWMutex
-	items map[string]string
+	items map[string]SessionRoute
 }
 
 func NewInMemorySessionRegistry() *InMemorySessionRegistry {
-	return &InMemorySessionRegistry{items: map[string]string{}}
+	return &InMemorySessionRegistry{items: map[string]SessionRoute{}}
 }
 
-func (r *InMemorySessionRegistry) Put(sessionID string, runtimeID string) error {
-	if sessionID == "" || runtimeID == "" {
+func (r *InMemorySessionRegistry) Put(sessionID string, route SessionRoute) error {
+	if sessionID == "" || route.RuntimeID == "" || route.Runtime == "" {
 		return errors.New("missing session or runtime id")
 	}
 	r.mu.Lock()
 	defer r.mu.Unlock()
-	r.items[sessionID] = runtimeID
+	r.items[sessionID] = route
 	return nil
 }
 
-func (r *InMemorySessionRegistry) Get(sessionID string) (string, bool) {
+func (r *InMemorySessionRegistry) Get(sessionID string) (SessionRoute, bool) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
-	runtimeID, ok := r.items[sessionID]
-	return runtimeID, ok
+	route, ok := r.items[sessionID]
+	return route, ok
 }
 
 func (r *InMemorySessionRegistry) Delete(sessionID string) {
@@ -49,7 +57,7 @@ func (r *InMemorySessionRegistry) Delete(sessionID string) {
 type FileSessionRegistry struct {
 	mu    sync.RWMutex
 	path  string
-	items map[string]string
+	items map[string]SessionRoute
 }
 
 func NewFileSessionRegistry(path string) (*FileSessionRegistry, error) {
@@ -58,7 +66,7 @@ func NewFileSessionRegistry(path string) (*FileSessionRegistry, error) {
 	}
 	registry := &FileSessionRegistry{
 		path:  path,
-		items: map[string]string{},
+		items: map[string]SessionRoute{},
 	}
 	if err := registry.load(); err != nil {
 		return nil, err
@@ -66,21 +74,21 @@ func NewFileSessionRegistry(path string) (*FileSessionRegistry, error) {
 	return registry, nil
 }
 
-func (r *FileSessionRegistry) Put(sessionID string, runtimeID string) error {
-	if sessionID == "" || runtimeID == "" {
+func (r *FileSessionRegistry) Put(sessionID string, route SessionRoute) error {
+	if sessionID == "" || route.RuntimeID == "" || route.Runtime == "" {
 		return errors.New("missing session or runtime id")
 	}
 	r.mu.Lock()
 	defer r.mu.Unlock()
-	r.items[sessionID] = runtimeID
+	r.items[sessionID] = route
 	return r.persistLocked()
 }
 
-func (r *FileSessionRegistry) Get(sessionID string) (string, bool) {
+func (r *FileSessionRegistry) Get(sessionID string) (SessionRoute, bool) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
-	runtimeID, ok := r.items[sessionID]
-	return runtimeID, ok
+	route, ok := r.items[sessionID]
+	return route, ok
 }
 
 func (r *FileSessionRegistry) Delete(sessionID string) {

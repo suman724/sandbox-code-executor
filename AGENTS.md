@@ -32,6 +32,8 @@ constitution and templates in `.specify/`.
 - Go 1.22 + go-chi/chi (HTTP API), OpenTelemetry (tracing), Open Policy Agent (policy evaluation), jwt-go (authn), Kubernetes client-go (runtime coordination) (001-sandboxed-code-execution)
 - PostgreSQL (metadata, audit index), object storage (artifacts), Redis (session state), append-only log store (audit events) (001-sandboxed-code-execution)
 - Go 1.23 + go-chi/chi (HTTP API), OpenTelemetry (tracing), Open Policy Agent (policy evaluation), jwt-go (authn), Kubernetes client-go (runtime coordination) (001-sandboxed-code-execution)
+- Go 1.23 + chi router, Kubernetes client (existing), standard net/http (001-session-runtime-routing)
+- Data-plane session route registry (current local registry + future persistent store) (001-session-runtime-routing)
 
 ## Recent Changes
 - 001-sandboxed-code-execution: Added Go 1.22 + go-chi/chi (HTTP API), OpenTelemetry (tracing),

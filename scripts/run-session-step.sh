@@ -36,4 +36,17 @@ curl -s -X POST "${BASE_URL}/sessions/${session_id}/steps" \
   -H "Content-Type: application/json" \
   -d "${step_payload}"
 
+step_payload='{"command":"x=5*10"}'
+
+curl -s -X POST "${BASE_URL}/sessions/${session_id}/steps" \
+  -H "accept: application/json" \
+  -H "Content-Type: application/json" \
+  -d "${step_payload}"
+
+step_payload='{"command":"print(x)"}'
+
+curl -s -X POST "${BASE_URL}/sessions/${session_id}/steps" \
+  -H "accept: application/json" \
+  -H "Content-Type: application/json" \
+  -d "${step_payload}"
 echo

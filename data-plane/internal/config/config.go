@@ -14,6 +14,11 @@ type Config struct {
 	SessionRegistry     string
 	SessionRegistryPath string
 	SessionImage        string
+	SessionImagePython  string
+	SessionImageNode    string
+	AgentEndpoint       string
+	AgentAuthMode       string
+	AgentPrefer         bool
 	OtelEndpoint        string
 	OtelService         string
 	AuthIssuer          string
@@ -31,6 +36,11 @@ func Load() (Config, error) {
 		SessionRegistry:     getenv("SESSION_REGISTRY_BACKEND", "memory"),
 		SessionRegistryPath: os.Getenv("SESSION_REGISTRY_PATH"),
 		SessionImage:        os.Getenv("SESSION_RUNTIME_IMAGE"),
+		SessionImagePython:  os.Getenv("SESSION_RUNTIME_IMAGE_PYTHON"),
+		SessionImageNode:    os.Getenv("SESSION_RUNTIME_IMAGE_NODE"),
+		AgentEndpoint:       os.Getenv("SESSION_AGENT_ENDPOINT"),
+		AgentAuthMode:       getenv("SESSION_AGENT_AUTH_MODE", "enforced"),
+		AgentPrefer:         getenv("SESSION_AGENT_PREFER", "true") == "true",
 		OtelEndpoint:        os.Getenv("OTEL_EXPORTER_OTLP_ENDPOINT"),
 		OtelService:         os.Getenv("OTEL_SERVICE_NAME"),
 		AuthIssuer:          os.Getenv("AUTH_ISSUER"),
@@ -58,6 +68,12 @@ func (c Config) Validate() error {
 	}
 	if c.Env == "production" && c.AuthzBypass {
 		return errors.New("AUTHZ_BYPASS is not allowed in production")
+	}
+	if c.AgentAuthMode != "enforced" && c.AgentAuthMode != "bypass" {
+		return errors.New("SESSION_AGENT_AUTH_MODE must be enforced or bypass")
+	}
+	if c.Env == "production" && c.AgentAuthMode == "bypass" {
+		return errors.New("SESSION_AGENT_AUTH_MODE=bypass is not allowed in production")
 	}
 	return nil
 }

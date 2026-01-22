@@ -8,11 +8,14 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net"
 	"os"
 	"os/exec"
 	"strings"
 	"sync"
 	"time"
+
+	"shared/sessionagent"
 )
 
 type LocalSessionRuntime struct {
@@ -21,12 +24,15 @@ type LocalSessionRuntime struct {
 }
 
 type sessionProcess struct {
-	cmd     *exec.Cmd
-	stdin   io.WriteCloser
-	stdout  *bufio.Reader
-	runtime string
-	repl    bool
-	mu     sync.Mutex
+	cmd           *exec.Cmd
+	stdin         io.WriteCloser
+	stdout        *bufio.Reader
+	runtime       string
+	repl          bool
+	agentCmd      *exec.Cmd
+	agentEndpoint string
+	agentAuthMode string
+	mu            sync.Mutex
 }
 
 const pythonReplScript = `import contextlib
@@ -138,12 +144,15 @@ func NewLocalSessionRuntime() *LocalSessionRuntime {
 	return &LocalSessionRuntime{processes: map[string]*sessionProcess{}}
 }
 
-func (r *LocalSessionRuntime) StartSession(ctx context.Context, sessionID string, policyID string, workspaceRef string, runtime string) (string, error) {
+func (r *LocalSessionRuntime) StartSession(ctx context.Context, sessionID string, policyID string, workspaceRef string, runtime string) (SessionRoute, error) {
 	_ = ctx
 	_ = policyID
-	_ = workspaceRef
 	if sessionID == "" {
-		return "", errors.New("missing session id")
+		return SessionRoute{}, errors.New("missing session id")
+	}
+	workspaceDir, err := resolveWorkspaceDir(workspaceRef, sessionID)
+	if err != nil {
+		return SessionRoute{}, err
 	}
 	normalized := strings.ToLower(strings.TrimSpace(runtime))
 	cmd := exec.Command("sh")
@@ -155,14 +164,17 @@ func (r *LocalSessionRuntime) StartSession(ctx context.Context, sessionID string
 		cmd = exec.Command("node", "-e", nodeReplScript)
 		repl = true
 	}
+	if workspaceDir != "" {
+		cmd.Dir = workspaceDir
+	}
 	stdin, err := cmd.StdinPipe()
 	if err != nil {
-		return "", err
+		return SessionRoute{}, err
 	}
 	stdoutPipe, err := cmd.StdoutPipe()
 	if err != nil {
 		_ = stdin.Close()
-		return "", err
+		return SessionRoute{}, err
 	}
 	if repl {
 		cmd.Stderr = os.Stderr
@@ -171,18 +183,58 @@ func (r *LocalSessionRuntime) StartSession(ctx context.Context, sessionID string
 	}
 	if err := cmd.Start(); err != nil {
 		_ = stdin.Close()
-		return "", err
+		return SessionRoute{}, err
+	}
+	agentEndpoint, agentMode, agentCmd, err := launchSessionAgent(sessionID)
+	if err != nil {
+		_ = stdin.Close()
+		_ = cmd.Process.Kill()
+		return SessionRoute{}, err
+	}
+	token := ""
+	if agentMode != "bypass" {
+		token = generateSessionToken()
+	}
+	if agentEndpoint != "" {
+		client := NewAgentClient()
+		err = client.RegisterSession(ctx, AgentRoute{
+			Endpoint: agentEndpoint,
+			AuthMode: agentMode,
+			Token:    token,
+		}, sessionagent.SessionRegisterRequest{
+			SessionID:    sessionID,
+			Runtime:      runtime,
+			Token:        token,
+			WorkspaceDir: workspaceDir,
+		})
+		if err != nil {
+			_ = stdin.Close()
+			_ = cmd.Process.Kill()
+			if agentCmd != nil && agentCmd.Process != nil {
+				_ = agentCmd.Process.Kill()
+			}
+			return SessionRoute{}, err
+		}
 	}
 	r.mu.Lock()
 	r.processes[sessionID] = &sessionProcess{
-		cmd:     cmd,
-		stdin:   stdin,
-		stdout:  bufio.NewReader(stdoutPipe),
-		runtime: runtime,
-		repl:    repl,
+		cmd:           cmd,
+		stdin:         stdin,
+		stdout:        bufio.NewReader(stdoutPipe),
+		runtime:       runtime,
+		repl:          repl,
+		agentCmd:      agentCmd,
+		agentEndpoint: agentEndpoint,
+		agentAuthMode: agentMode,
 	}
 	r.mu.Unlock()
-	return sessionID, nil
+	return SessionRoute{
+		RuntimeID: sessionID,
+		Runtime:   runtime,
+		Endpoint:  agentEndpoint,
+		AuthMode:  agentMode,
+		Token:     token,
+	}, nil
 }
 
 func (r *LocalSessionRuntime) RunStep(ctx context.Context, runtimeID string, command string) (StepOutput, error) {
@@ -197,7 +249,7 @@ func (r *LocalSessionRuntime) RunStep(ctx context.Context, runtimeID string, com
 	process, ok := r.processes[runtimeID]
 	r.mu.RUnlock()
 	if !ok {
-		return StepOutput{}, errors.New("runtime not found")
+		return StepOutput{}, ErrRuntimeNotFound
 	}
 	process.mu.Lock()
 	defer process.mu.Unlock()
@@ -233,13 +285,16 @@ func (r *LocalSessionRuntime) TerminateSession(ctx context.Context, runtimeID st
 	}
 	r.mu.Unlock()
 	if !ok {
-		return errors.New("runtime not found")
+		return ErrRuntimeNotFound
 	}
 	if process.stdin != nil {
 		_ = process.stdin.Close()
 	}
 	if process.cmd != nil && process.cmd.Process != nil {
 		_ = process.cmd.Process.Kill()
+	}
+	if process.agentCmd != nil && process.agentCmd.Process != nil {
+		_ = process.agentCmd.Process.Kill()
 	}
 	return nil
 }
@@ -315,4 +370,40 @@ func runStepRepl(process *sessionProcess, command string) (StepOutput, error) {
 		}
 	}
 	return StepOutput{Stdout: resp.Stdout, Stderr: stderr}, nil
+}
+
+func launchSessionAgent(sessionID string) (string, string, *exec.Cmd, error) {
+	if os.Getenv("SESSION_AGENT_LAUNCH") != "true" {
+		return os.Getenv("SESSION_AGENT_ENDPOINT"), getenv("SESSION_AGENT_AUTH_MODE", "bypass"), nil, nil
+	}
+	addr := os.Getenv("SESSION_AGENT_ADDR")
+	if addr == "" {
+		listener, err := net.Listen("tcp", "127.0.0.1:0")
+		if err != nil {
+			return "", "", nil, err
+		}
+		addr = listener.Addr().String()
+		_ = listener.Close()
+	}
+	authMode := getenv("SESSION_AGENT_AUTH_MODE", "bypass")
+	bin := getenv("SESSION_AGENT_BIN", "session-agent")
+	cmd := exec.Command(bin)
+	cmd.Env = append(os.Environ(),
+		"ENV="+getenv("ENV", "dev"),
+		"SESSION_AGENT_ADDR="+addr,
+		"SESSION_AGENT_AUTH_BYPASS="+boolToString(authMode == "bypass"),
+		"SESSION_ID="+sessionID,
+	)
+	if err := cmd.Start(); err != nil {
+		return "", "", nil, err
+	}
+	endpoint := "http://" + addr
+	return endpoint, authMode, cmd, nil
+}
+
+func boolToString(value bool) string {
+	if value {
+		return "true"
+	}
+	return "false"
 }

@@ -3,7 +3,7 @@ kind: Deployment
 metadata:
   name: control-plane
 spec:
-  replicas: 2
+  replicas: 1
   selector:
     matchLabels:
       app: control-plane
@@ -14,6 +14,18 @@ spec:
     spec:
       containers:
         - name: control-plane
-          image: control-plane:latest
+          image: sandbox-executor-control-plane:dev
+          imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 8080
+          env:
+            - name: ENV
+              value: dev
+            - name: DATA_PLANE_URL
+              value: http://data-plane:8081
+            - name: DATABASE_DRIVER
+              value: sqlite
+            - name: DATABASE_URL
+              value: file:/tmp/control-plane.db?cache=shared&mode=rwc
+            - name: AUTHZ_BYPASS
+              value: "true"

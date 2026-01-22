@@ -1,0 +1,157 @@
+openapi: 3.0.3
+info:
+  title: Session Agent API
+  version: 1.0.0
+  description: Internal API for executing steps within a session runtime.
+servers:
+  - url: http://{agentHost}:{agentPort}
+    variables:
+      agentHost:
+        default: 127.0.0.1
+      agentPort:
+        default: "9000"
+paths:
+  /v1/health:
+    get:
+      summary: Health check
+      responses:
+        "200":
+          description: Agent is healthy
+  /v1/sessions:
+    post:
+      summary: Register a session runtime
+      security:
+        - SessionToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SessionRegisterRequest"
+      responses:
+        "200":
+          description: Session registered
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SessionRegisterResponse"
+        "401":
+          description: Unauthorized
+  /v1/sessions/{sessionId}/terminate:
+    post:
+      summary: Terminate a session runtime
+      security:
+        - SessionToken: []
+      parameters:
+        - name: sessionId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Session terminated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SessionTerminateResponse"
+        "401":
+          description: Unauthorized
+  /v1/steps:
+    post:
+      summary: Execute a step in a session runtime
+      security:
+        - SessionToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/StepRequest"
+      responses:
+        "200":
+          description: Step executed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StepResult"
+        "401":
+          description: Unauthorized
+        "404":
+          description: Session not found
+components:
+  securitySchemes:
+    SessionToken:
+      type: apiKey
+      in: header
+      name: X-Session-Token
+      description: Required in production. Optional when auth mode is explicitly set to bypass for non-production.
+  schemas:
+    SessionRegisterRequest:
+      type: object
+      required:
+        - sessionId
+        - runtime
+      properties:
+        sessionId:
+          type: string
+        runtime:
+          type: string
+        token:
+          type: string
+        workspaceDir:
+          type: string
+    SessionRegisterResponse:
+      type: object
+      required:
+        - sessionId
+        - status
+      properties:
+        sessionId:
+          type: string
+        status:
+          type: string
+    SessionTerminateResponse:
+      type: object
+      required:
+        - sessionId
+        - status
+      properties:
+        sessionId:
+          type: string
+        status:
+          type: string
+    StepRequest:
+      type: object
+      required:
+        - sessionId
+        - stepId
+        - code
+      properties:
+        sessionId:
+          type: string
+        stepId:
+          type: string
+        code:
+          type: string
+        runtime:
+          type: string
+    StepResult:
+      type: object
+      required:
+        - stepId
+        - status
+        - stdout
+        - stderr
+      properties:
+        stepId:
+          type: string
+        status:
+          type: string
+          enum: [completed, failed]
+        exitCode:
+          type: integer
+        stdout:
+          type: string
+        stderr:
+          type: string

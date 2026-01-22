@@ -86,3 +86,47 @@ jobs:
           cache-to: type=gha,mode=max
           tags: ${{ steps.meta_data.outputs.tags }}
           labels: ${{ steps.meta_data.outputs.labels }}
+
+      - name: Docker meta (runtime python)
+        id: meta_runtime_python
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/suman724/sandbox-executor-runtime-python
+          tags: |
+            type=ref,event=branch
+            type=sha
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - name: Build and push (runtime python)
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: deploy/runtime/python/Dockerfile
+          push: true
+          platforms: ${{ env.DOCKER_PLATFORMS }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          tags: ${{ steps.meta_runtime_python.outputs.tags }}
+          labels: ${{ steps.meta_runtime_python.outputs.labels }}
+
+      - name: Docker meta (runtime node)
+        id: meta_runtime_node
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/suman724/sandbox-executor-runtime-node
+          tags: |
+            type=ref,event=branch
+            type=sha
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - name: Build and push (runtime node)
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: deploy/runtime/node/Dockerfile
+          push: true
+          platforms: ${{ env.DOCKER_PLATFORMS }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          tags: ${{ steps.meta_runtime_node.outputs.tags }}
+          labels: ${{ steps.meta_runtime_node.outputs.labels }}

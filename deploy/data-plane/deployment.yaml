@@ -3,7 +3,7 @@ kind: Deployment
 metadata:
   name: data-plane
 spec:
-  replicas: 2
+  replicas: 1
   selector:
     matchLabels:
       app: data-plane
@@ -12,8 +12,29 @@ spec:
       labels:
         app: data-plane
     spec:
+      serviceAccountName: data-plane
       containers:
         - name: data-plane
-          image: data-plane:latest
+          image: sandbox-executor-data-plane:dev
+          imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 8081
+          env:
+            - name: ENV
+              value: dev
+            - name: SESSION_RUNTIME_BACKEND
+              value: k8s
+            - name: RUNTIME_NAMESPACE
+              value: default
+            - name: SESSION_AGENT_PREFER
+              value: "true"
+            - name: SESSION_RUNTIME_IMAGE
+              value: runtime-python:dev
+            - name: SESSION_RUNTIME_IMAGE_PYTHON
+              value: runtime-python:dev
+            - name: SESSION_RUNTIME_IMAGE_NODE
+              value: runtime-node:dev
+            - name: SESSION_AGENT_AUTH_MODE
+              value: bypass
+            - name: AUTHZ_BYPASS
+              value: "true"
